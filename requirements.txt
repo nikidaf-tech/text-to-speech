@@ -6,3 +6,4 @@ python-docx
 pydub
 deep-translator
 audioop-lts
+num2words

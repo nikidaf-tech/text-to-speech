@@ -14,6 +14,7 @@ import wave
 import math
 import base64
 from pydub import AudioSegment
+from num2words import num2words
 
 
 # Инициализиране на SQLite база данни за перманентно съхранение на всичко
@@ -377,8 +378,29 @@ def format_smart_time(total_seconds):
     return " ".join(parts)
 
 
+def convert_numbers_to_words(text):
+    """Преобразува числовите стойности в български думи (напр. 23 -> двадесет и три)"""
+    def replace_match(match):
+        num_str = match.group(0)
+        try:
+            if '.' in num_str or ',' in num_str:
+                parts = num_str.replace(',', '.').split('.')
+                whole = num2words(int(parts[0]), lang='bg')
+                decimal = num2words(int(parts[1]), lang='bg')
+                return f"{whole} цяло и {decimal}"
+            else:
+                return num2words(int(num_str), lang='bg')
+        except Exception:
+            return num_str
+
+    return re.sub(r'\b\d+(?:[.,]\d+)?\b', replace_match, text)
+
+
 def clean_and_optimize_speech(text):
     text = re.sub(r'<[^>]+>', '', text)
+
+    # Автоматично преобразуване на числата в думи на български език
+    text = convert_numbers_to_words(text)
 
     active_lexicon = st.session_state.lexicon_profiles[st.session_state.active_profile]
     for eng, bg in active_lexicon.items():
@@ -963,7 +985,7 @@ else:
                 if st.button(fav_btn_text, key=f"fav_{rec_id}"):
                     new_fav = 0 if is_fav else 1
                     c.execute("UPDATE history SET is_favorite = ? WHERE id = ?", (new_fav, rec_id))
-                    db_conn.commit()
+                    db_comm.commit()
                     st.rerun()
             st.markdown("---")
     else:
