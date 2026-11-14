@@ -3,4 +3,6 @@ edge-tts
 gtts
 PyPDF2
 python-docx
+pydub
 deep-translator
+audioop-lts
