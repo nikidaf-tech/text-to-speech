@@ -24,45 +24,23 @@ def init_db():
     c.execute('''
               CREATE TABLE IF NOT EXISTS history
               (
-                  id
-                  INTEGER
-                  PRIMARY
-                  KEY
-                  AUTOINCREMENT,
-                  text
-                  TEXT,
-                  voice
-                  TEXT,
-                  audio
-                  BLOB,
-                  timestamp
-                  TEXT,
-                  is_favorite
-                  INTEGER
-                  DEFAULT
-                  0,
-                  tags
-                  TEXT
-                  DEFAULT
-                  ''
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  text TEXT,
+                  voice TEXT,
+                  audio BLOB,
+                  timestamp TEXT,
+                  is_favorite INTEGER DEFAULT 0,
+                  tags TEXT DEFAULT ''
               )
               ''')
     c.execute('''
               CREATE TABLE IF NOT EXISTS lexicon
               (
-                  profile
-                  TEXT,
-                  word
-                  TEXT,
-                  replacement
-                  TEXT,
-                  PRIMARY
-                  KEY
-              (
-                  profile,
-                  word
+                  profile TEXT,
+                  word TEXT,
+                  replacement TEXT,
+                  PRIMARY KEY (profile, word)
               )
-                  )
               ''')
     conn.commit()
     return conn
@@ -306,9 +284,16 @@ with st.sidebar:
                 st.success("Запазено перманентно!")
                 st.rerun()
 
-    with st.expander("⚙️ Опции за изход", expanded=False):
+    with st.expander("⚙️ Опции за изход и известия", expanded=False):
         auto_play = st.checkbox("▶️ Автоматично пускане", value=True)
         show_stats = st.checkbox("📊 Показване на статистика", value=True)
+        enable_bg_notify = st.checkbox("🔔 Системни известия във фонов режим", value=True)
+        if enable_bg_notify:
+            st.components.v1.html("""
+                <button onclick="Notification.requestPermission()" style="width:100%; padding:8px; border-radius:8px; background:#334155; color:#f8fafc; border:1px solid #475569; cursor:pointer; font-size:12px;">
+                    🔓 Разреши известия в браузъра
+                </button>
+            """, height=45)
 
 rate_str = f"{rate:+d}%" if rate != 0 else "+0%"
 pitch_str = f"{pitch:+d}Hz" if pitch != 0 else "+0Hz"
@@ -367,14 +352,18 @@ def translate_long_text(text, src_code, tgt_code):
 
 def format_smart_time(total_seconds):
     total_seconds = int(round(total_seconds))
-    if total_seconds < 1: return "1 сек."
+    if total_seconds < 1:
+        return "1 сек."
     hours = total_seconds // 3600
     minutes = (total_seconds % 3600) // 60
     seconds = total_seconds % 60
     parts = []
-    if hours > 0: parts.append(f"{hours} ч.")
-    if minutes > 0: parts.append(f"{minutes} мин.")
-    if seconds > 0 or not parts: parts.append(f"{seconds} сек.")
+    if hours > 0:
+        parts.append(f"{hours} ч.")
+    if minutes > 0:
+        parts.append(f"{minutes} мин.")
+    if seconds > 0 or not parts:
+        parts.append(f"{seconds} сек.")
     return " ".join(parts)
 
 
@@ -454,7 +443,7 @@ async def generate_audio_bytes(text, voice, rate_s, pitch_s, volume_s, engine_ch
         return fp.read()
 
 
-def play_rich_notification():
+def play_rich_notification(notify_msg="Аудио файлът е готов за слушане!"):
     sample_rate = 22050
     duration = 0.65
     frames = int(sample_rate * duration)
@@ -479,11 +468,37 @@ def play_rich_notification():
         wav_file.writeframes(data)
     wav_buffer.seek(0)
     b64 = base64.b64encode(wav_buffer.read()).decode()
-    st.markdown(f"""
+
+    notify_js = ""
+    if enable_bg_notify:
+        notify_js = f"""
+        <script>
+            if (window.Notification) {{
+                if (Notification.permission === "granted") {{
+                    new Notification("🎙️ Text to Speech AI Studio", {{
+                        body: "{notify_msg}",
+                        icon: "https://streamlit.io/images/brand/streamlit-mark-color.png"
+                    }});
+                }} else if (Notification.permission !== "denied") {{
+                    Notification.requestPermission().then(function (permission) {{
+                        if (permission === "granted") {{
+                            new Notification("🎙️ Text to Speech AI Studio", {{
+                                body: "{notify_msg}",
+                                icon: "https://streamlit.io/images/brand/streamlit-mark-color.png"
+                            }});
+                        }}
+                    }});
+                }}
+            }}
+        </script>
+        """
+
+    st.components.v1.html(f"""
         <audio autoplay style="display:none;">
             <source src="data:audio/wav;base64,{b64}" type="audio/wav">
         </audio>
-    """, unsafe_allow_html=True)
+        {notify_js}
+    """, height=0)
 
 
 def render_3d_audio_player(audio_bytes, paragraphs=None, should_autoplay=True):
@@ -622,7 +637,8 @@ if app_section == "Текст към аудио":
         manual_text = st.text_area("Текстово поле", value=default_val,
                                    placeholder="Въведете текст тук...", height=280,
                                    label_visibility="collapsed")
-        if manual_text.strip(): text_to_process = manual_text
+        if manual_text.strip():
+            text_to_process = manual_text
 
     with sub_tab2:
         uploaded_file = st.file_uploader("Изберете файл", type=["txt", "pdf", "docx"], label_visibility="collapsed")
@@ -669,6 +685,7 @@ if app_section == "Текст към аудио":
             except Exception as e:
                 st.error(f"❌ Грешка при обработка на файла: {e}")
 
+    gen_time_str = "няколко сек."
     if text_to_process.strip() and show_stats:
         words_count = len(text_to_process.split())
         chars_count = len(text_to_process)
@@ -705,7 +722,7 @@ if app_section == "Текст към аудио":
                               (text_to_process[:50], selected_voice, sqlite3.Binary(audio_bytes), current_time))
                     db_conn.commit()
 
-                    play_rich_notification()
+                    play_rich_notification("Аудио записът е готов за слушане!")
                     st.markdown("### 🎧 Готов аудио запис:")
                     paragraphs_list = [p.strip() for p in text_to_process.split("\n\n") if p.strip()]
                     render_3d_audio_player(audio_bytes, paragraphs=paragraphs_list, should_autoplay=auto_play)
@@ -720,7 +737,8 @@ elif app_section == "Пакетен експорт":
     export_text = st.text_area("Голям текст", placeholder="Поставете цялата книга тук...", height=260,
                                label_visibility="collapsed")
 
-    if export_text.strip(): text_to_process = export_text
+    if export_text.strip():
+        text_to_process = export_text
 
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -735,7 +753,8 @@ elif app_section == "Пакетен експорт":
                     chapters = re.split(r'\n(?=Глава|Част|\b[ІVXLCM]+\b)', text_to_process)
                     if len(chapters) <= 1:
                         chapters = [p.strip() for p in text_to_process.split("\n\n") if p.strip()]
-                    if not chapters: chapters = [text_to_process]
+                    if not chapters:
+                        chapters = [text_to_process]
 
                     zip_buffer = io.BytesIO()
                     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
@@ -745,7 +764,7 @@ elif app_section == "Пакетен експорт":
                             zip_file.writestr(f"glava_{idx:02d}.mp3", part_bytes)
                     zip_buffer.seek(0)
 
-                    play_rich_notification()
+                    play_rich_notification(f"ZIP пакетът с {len(chapters)} глави е готов за изтегляне!")
                     st.success(f"✅ Успешно генерирани и архивирани {len(chapters)} глави в ZIP!")
                     st.download_button("📥 Изтегли ZIP архив", data=zip_buffer, file_name="audio_batch.zip",
                                        mime="application/zip", use_container_width=True)
@@ -882,7 +901,7 @@ elif app_section == "🎭 Аудио драма (Multi-Voice)":
                     combined_audio.export(out_buf, format="mp3")
                     drama_bytes = out_buf.getvalue()
 
-                    play_rich_notification()
+                    play_rich_notification("Аудио драмата е готова!")
                     st.success("✅ Аудио драмата е готова!")
                     render_3d_audio_player(drama_bytes, should_autoplay=auto_play)
                     st.download_button("📥 Свали готовата драма (.mp3)", data=drama_bytes, file_name="audio_drama.mp3",
@@ -943,7 +962,7 @@ elif app_section == "🎵 Аудио миксер и фонове":
                     mixed_seg.export(mix_buf, format="mp3")
                     mixed_bytes = mix_buf.getvalue()
 
-                    play_rich_notification()
+                    play_rich_notification("Смесеният аудио запис е готов!")
                     st.success("✅ Успешно смесен аудио запис!")
                     render_3d_audio_player(mixed_bytes, should_autoplay=auto_play)
                     st.download_button("📥 Свали смесения запис (.mp3)", data=mixed_bytes, file_name="mixed_audio.mp3",
@@ -985,11 +1004,11 @@ else:
                 if st.button(fav_btn_text, key=f"fav_{rec_id}"):
                     new_fav = 0 if is_fav else 1
                     c.execute("UPDATE history SET is_favorite = ? WHERE id = ?", (new_fav, rec_id))
-                    db_comm.commit()
+                    db_conn.commit()
                     st.rerun()
             st.markdown("---")
     else:
-        st.info("Нет записи в архивната библиотека.")
+        st.info("Няма записи в архивната библиотека.")
 
 # ФУТЕР
 st.markdown("""
