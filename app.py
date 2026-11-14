@@ -15,10 +15,6 @@ import math
 import base64
 from pydub import AudioSegment
 
-# Автоматично добавяне на пътя до FFmpeg за пълна съвместимост с аудио миксера
-os.environ[
-    "PATH"] += os.pathsep + r"C:\Users\nikid\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0.2-full_build\bin"
-
 
 # Инициализиране на SQLite база данни за перманентно съхранение на всичко
 def init_db():
@@ -971,7 +967,7 @@ else:
                     st.rerun()
             st.markdown("---")
     else:
-        st.info("Няма записи в архивната библиотека.")
+        st.info("Нет записи в архивната библиотека.")
 
 # ФУТЕР
 st.markdown("""
