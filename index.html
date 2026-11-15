@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="bg" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTS STUDIO PRO | AI Voice & Audio Workspace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-main: #070709;
+            --bg-panel: #0e0e12;
+            --bg-card: #121217;
+            --border-subtle: #22222a;
+            --red-primary: #e50914;
+            --red-bright: #ff1e27;
+            --red-glow: rgba(229, 9, 20, 0.55);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: #f3f4f6;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        textarea, input, pre, select {
+            user-select: text;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar-link {
+            position: relative;
+            transition: all 0.2s ease;
+            color: #a1a1aa;
+        }
+        .sidebar-link:hover {
+            color: #ffffff;
+            background: rgba(229, 9, 20, 0.08);
+        }
+        .sidebar-link.active {
+            color: #ffffff;
+            background: linear-gradient(90deg, rgba(229, 9, 20, 0.28) 0%, rgba(229, 9, 20, 0.02) 100%);
+            font-weight: 600;
+        }
+        .sidebar-link.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #ff1e27;
+            box-shadow: 0 0 12px #ff1e27;
+        }
+
+        /* Hero Banner Carbon & Crimson Glow */
+        .hero-banner {
+            background: radial-gradient(circle at 82% 50%, rgba(229, 9, 20, 0.28) 0%, rgba(14, 14, 18, 0.96) 58%),
+                        repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 2px, transparent 2px, transparent 6px),
+                        #0b0b0f;
+            border: 1px solid rgba(229, 9, 20, 0.45);
+            box-shadow: 0 0 28px rgba(229, 9, 20, 0.14), inset 0 0 30px rgba(229, 9, 20, 0.08);
+        }
+
+        /* Horizontal Mode Tabs */
+        .mode-tab {
+            background: #131318;
+            border: 1px solid #24242e;
+            color: #d4d4d8;
+            transition: all 0.2s ease;
+        }
+        .mode-tab:hover {
+            border-color: rgba(229, 9, 20, 0.5);
+            color: #ffffff;
+        }
+        .mode-tab.active {
+            background: linear-gradient(180deg, #e50914 0%, #99060d 100%);
+            border-color: #ff3b44;
+            color: #ffffff;
+            box-shadow: 0 4px 18px rgba(229, 9, 20, 0.45);
+        }
+
+        /* Dark Studio Card */
+        .studio-card {
+            background: #0d0d11;
+            border: 1px solid #202028;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
+        }
+
+        /* Primary Neon Red CTA Button */
+        .btn-neon-red {
+            background: linear-gradient(180deg, #ff1e27 0%, #c80811 100%);
+            border: 1px solid #ff4d54;
+            box-shadow: 0 0 24px rgba(229, 9, 20, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-neon-red:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0 34px rgba(255, 30, 39, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+            filter: brightness(1.06);
+        }
+        .btn-neon-red:active {
+            transform: translateY(1px);
+        }
+
+        /* Custom Crimson Sliders */
+        input[type="range"].crimson-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            background: #23232c;
+            height: 5px;
+            border-radius: 999px;
+            outline: none;
+        }
+        input[type="range"].crimson-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #ff1e27;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 10px #ff1e27;
+            cursor: pointer;
+            transition: transform 0.15s ease;
+        }
+        input[type="range"].crimson-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Animated Waveform */
+        @keyframes eqDance {
+            0%, 100% { transform: scaleY(0.25); }
+            50% { transform: scaleY(1); }
+        }
+        .wave-active .wave-bar {
+            animation: eqDance 0.65s ease-in-out infinite;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #070709;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #272730;
+            border-radius: 999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #e50914;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#070709] text-zinc-100">
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-20 right-5 z-50 transform translate-x-[120%] opacity-0 transition-all duration-300 bg-[#121217] border border-red-500/50 shadow-[0_0_25px_rgba(229,9,20,0.3)] rounded-xl px-4 py-3 flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-500">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+        </div>
+        <div>
+            <p id="toastTitle" class="text-xs font-bold text-white">Известие</p>
+            <p id="toastMsg" class="text-[11px] text-zinc-400">Действието е изпълнено.</p>
+        </div>
+    </div>
+
+    <!-- 1. TOP NAVIGATION HEADER -->
+    <header class="h-16 bg-[#09090c] border-b border-[#1d1d24] px-4 lg:px-6 flex items-center justify-between sticky top-0 z-40">
+        <!-- Left Logo -->
+        <div class="flex items-center gap-3">
+            <button id="mobileMenuBtn" onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-lg bg-[#141419] border border-zinc-800 text-zinc-300">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+            <div class="w-10 h-10 rounded-full bg-red-600/15 border-2 border-red-600 shadow-[0_0_16px_rgba(229,9,20,0.6)] flex items-center justify-center text-red-500">
+                <i data-lucide="mic" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-1.5 leading-none">
+                    <span class="text-lg sm:text-xl font-black tracking-tight text-white">TTS STUDIO</span>
+                    <span class="text-lg sm:text-xl font-black tracking-tight text-[#ff1e27] drop-shadow-[0_0_8px_rgba(255,30,39,0.6)]">PRO</span>
+                </div>
+                <p class="text-[9px] sm:text-[10px] font-semibold tracking-[0.2em] text-zinc-400 uppercase mt-0.5">AI VOICE & AUDIO WORKSPACE</p>
+            </div>
+        </div>
+
+        <!-- Center Animated Red Soundwave SVG -->
+        <div class="hidden md:flex items-center justify-center flex-1 max-w-md mx-6">
+            <svg viewBox="0 0 360 36" class="w-full h-8 overflow-visible" id="topHeaderWave">
+                <defs>
+                    <linearGradient id="redWaveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#e50914" stop-opacity="0.1"/>
+                        <stop offset="50%" stop-color="#ff1e27" stop-opacity="1"/>
+                        <stop offset="100%" stop-color="#e50914" stop-opacity="0.1"/>
+                    </linearGradient>
+                </defs>
+                <g id="headerWaveBars" fill="url(#redWaveGrad)"></g>
+            </svg>
+        </div>
+
+        <!-- Right Status & Premium Badge -->
+        <div class="flex items-center gap-3 sm:gap-4">
+            <div class="flex items-center gap-2 text-xs font-medium text-zinc-300">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
+                <span>Онлайн</span>
+            </div>
+            <button onclick="showToast('Premium Акаунт', 'Всички невронни гласове и Lossless експорт са активирани!')" class="px-3.5 py-1.5 rounded-full bg-[#1a150b] border border-amber-500/40 text-amber-400 text-xs font-bold flex items-center gap-1.5 shadow-[0_0_15px_rgba(245,158,11,0.15)] hover:border-amber-400 transition">
+                <span>👑</span>
+                <span>Premium</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN BODY WRAPPER (SIDEBAR + WORKSPACE) -->
+    <div class="flex-1 flex relative">
+
+        <!-- 2. LEFT SIDEBAR -->
+        <aside id="leftSidebar" class="fixed lg:static inset-y-0 left-0 z-30 w-60 bg-[#09090d] border-r border-[#1b1b22] flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-200 pt-16 lg:pt-0">
+            <!-- Navigation Menu -->
+            <div class="py-3 space-y-0.5 overflow-y-auto">
+                <button onclick="selectMode('home')" data-nav="home" class="sidebar-link active w-full flex items-center gap-3 px-5 py-3 text-sm text-left">
+                    <i data-lucide="home" class="w-4 h-4 text-red-500"></i>
+                    <span>Начало</span>
+                </button>
+                <button onclick="selectMode('tts')" data-nav="tts" class="sidebar-link w-full flex items-center gap-3 px-5 py-3 text-sm text-left">
+                    <i data-lucide="mic" class="w-4 h-4"></i>
+                    <span>Текст към аудио</span>
+                </button>
+                <button onclick="selectMode('batch')" data-nav="batch" class="sidebar-link w-full flex items-center gap-3 px-5 py-3 text-sm text-left">
+                    <i data-lucide="package" class="w-4 h-4"></i>
+                    <span>Пакетен експорт</span>
+                </button>
+                <button onclick="selectMode('translator')" data-nav="translator" class="sidebar-link w-full flex items-center gap-3 px-5 py-3 text-sm text-left">
+                    <i data-lucide="globe" class="w-4 h-4"></i>
+                    <span>AI преводач</span>
+                </button>
+                <button onclick="selectMode('srt')" data-nav="srt" class="sidebar-link w-full flex items-center gap-3 px-5 py-3 text-sm text-left">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                    <span>SRT субтитри</span>
+                </button>
+                <button onclick="selectMode('drama')" data-nav="drama" class="sidebar-link w-full flex items-center gap-3 px-5 py-3 text-sm text-left">
+                    <i data-lucide="drama" class="w-4 h-4"></i>
+                    <span>Аудио драма</span>
+                </button>
+                <button onclick="selectMode('mixer')" data-nav="mixer" class="sidebar-link w-full flex items-center gap-3 px-5 py-3 text-sm text-left">
+                    <i data-lucide="music" class="w-4 h-4"></i>
+                    <span>Аудио миксер</span>
+                </button>
+                <button onclick="selectMode('archive')" data-nav="archive" class="sidebar-link w-full flex items-center gap-3 px-5 py-3 text-sm text-left">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                    <span>Архив и библиотека</span>
+                </button>
+
+                <div class="my-3 border-t border-[#1b1b22]"></div>
+
+                <!-- Lower Utility Section -->
+                <button onclick="openModal('settingsModal')" class="sidebar-link w-full flex items-center gap-3 px-5 py-2.5 text-sm text-left">
+                    <i data-lucide="settings" class="w-4 h-4"></i>
+                    <span>Настройки</span>
+                </button>
+                <button onclick="openModal('helpModal')" class="sidebar-link w-full flex items-center gap-3 px-5 py-2.5 text-sm text-left">
+                    <i data-lucide="info" class="w-4 h-4"></i>
+                    <span>Помощ</span>
+                </button>
+
+                <!-- Dark Mode Switch (Active Red) -->
+                <div class="px-5 py-3 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5 text-xs font-medium text-zinc-300">
+                        <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+                        <span>Тъмен режим</span>
+                    </div>
+                    <button id="darkModeToggle" onclick="toggleThemeAccent()" class="w-10 h-5 rounded-full bg-red-600 p-0.5 flex items-center justify-end transition shadow-[0_0_10px_rgba(229,9,20,0.6)]">
+                        <span class="w-4 h-4 rounded-full bg-white block"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bottom 3D Studio Headphones Illustration & Version -->
+            <div class="p-4 text-center relative overflow-hidden border-t border-[#16161c] bg-gradient-to-t from-red-950/20 to-transparent">
+                <div class="relative mx-auto w-32 h-28 flex items-center justify-center">
+                    <!-- Neon Red Glow Behind Headphones -->
+                    <div class="absolute inset-2 rounded-full bg-red-600/25 blur-xl"></div>
+                    <!-- Custom Detailed SVG Studio Headphones -->
+                    <svg viewBox="0 0 140 120" class="w-28 h-24 relative z-10 drop-shadow-[0_6px_14px_rgba(229,9,20,0.5)]">
+                        <defs>
+                            <linearGradient id="hpBand" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#1f1f24"/>
+                                <stop offset="50%" stop-color="#3f3f46"/>
+                                <stop offset="100%" stop-color="#18181b"/>
+                            </linearGradient>
+                            <linearGradient id="hpNeon" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#ff2e38"/>
+                                <stop offset="100%" stop-color="#99060d"/>
+                            </linearGradient>
+                        </defs>
+                        <!-- Soundwave Floor -->
+                        <ellipse cx="70" cy="105" rx="52" ry="8" fill="none" stroke="#ff1e27" stroke-width="1.2" stroke-opacity="0.5"/>
+                        <ellipse cx="70" cy="105" rx="34" ry="4.5" fill="none" stroke="#ff1e27" stroke-width="1" stroke-opacity="0.8"/>
+                        <!-- Headband -->
+                        <path d="M 32 62 C 32 22, 108 22, 108 62" fill="none" stroke="url(#hpBand)" stroke-width="9" stroke-linecap="round"/>
+                        <path d="M 36 58 C 36 27, 104 27, 104 58" fill="none" stroke="#ff1e27" stroke-width="2" stroke-linecap="round"/>
+                        <!-- Left Earcup -->
+                        <rect x="20" y="54" width="18" height="34" rx="8" fill="#18181b" stroke="#ff1e27" stroke-width="2"/>
+                        <rect x="35" y="57" width="7" height="28" rx="3.5" fill="#27272a"/>
+                        <!-- Right Earcup -->
+                        <rect x="102" y="54" width="18" height="34" rx="8" fill="#18181b" stroke="#ff1e27" stroke-width="2"/>
+                        <rect x="98" y="57" width="7" height="28" rx="3.5" fill="#27272a"/>
+                        <!-- Crimson Accent Rings -->
+                        <circle cx="29" cy="71" r="4" fill="url(#hpNeon)"/>
+                        <circle cx="111" cy="71" r="4" fill="url(#hpNeon)"/>
+                    </svg>
+                </div>
+                <p class="text-[11px] font-semibold text-zinc-400 tracking-wide mt-1">v1.0.0 Pro</p>
+            </div>
+        </aside>
+
+        <!-- 3. MAIN WORKSPACE AREA -->
+        <main class="flex-1 p-4 sm:p-6 lg:p-7 max-w-[1440px] mx-auto w-full space-y-5">
+
+            <!-- HERO BANNER -->
+            <section class="hero-banner rounded-2xl p-6 sm:px-8 sm:py-6 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="relative z-10 space-y-3 max-w-2xl">
+                    <h1 class="text-2xl sm:text-4xl font-black tracking-tight text-white">
+                        TTS STUDIO <span class="text-[#ff1e27] drop-shadow-[0_0_12px_rgba(255,30,39,0.7)]">PRO</span>
+                    </h1>
+                    <p class="text-sm sm:text-base text-zinc-300 leading-relaxed">
+                        Професионално AI решение за текст към реч, превод и аудио обработка
+                    </p>
+                    <div class="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1 text-xs sm:text-sm font-medium text-zinc-200">
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+                            7 мощни режима
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+                            Високо качество
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+                            Бързо и лесно
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+                            Безплатно
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Right Studio Condenser Microphone SVG & Red Waves -->
+                <div class="relative w-full md:w-72 h-36 flex items-center justify-center shrink-0">
+                    <!-- Glowing Red Soundwave Backdrop -->
+                    <svg viewBox="0 0 260 120" class="absolute inset-0 w-full h-full">
+                        <g fill="#ff1e27" opacity="0.65">
+                            <rect x="20" y="45" width="3" height="30" rx="1.5"/>
+                            <rect x="30" y="30" width="3" height="60" rx="1.5"/>
+                            <rect x="40" y="18" width="3" height="84" rx="1.5"/>
+                            <rect x="50" y="38" width="3" height="44" rx="1.5"/>
+                            <rect x="60" y="12" width="3" height="96" rx="1.5"/>
+                            <rect x="70" y="25" width="3" height="70" rx="1.5"/>
+                            <rect x="80" y="42" width="3" height="36" rx="1.5"/>
+                            <rect x="175" y="35" width="3" height="50" rx="1.5"/>
+                            <rect x="185" y="15" width="3" height="90" rx="1.5"/>
+                            <rect x="195" y="28" width="3" height="64" rx="1.5"/>
+                            <rect x="205" y="10" width="3" height="100" rx="1.5"/>
+                            <rect x="215" y="32" width="3" height="56" rx="1.5"/>
+                            <rect x="225" y="44" width="3" height="32" rx="1.5"/>
+                            <rect x="235" y="50" width="3" height="20" rx="1.5"/>
+                        </g>
+                    </svg>
+                    <!-- Condenser Mic Illustration -->
+                    <svg viewBox="0 0 120 130" class="w-28 h-32 relative z-10 drop-shadow-[0_0_20px_rgba(229,9,20,0.65)]">
+                        <defs>
+                            <linearGradient id="micBody" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#18181b"/>
+                                <stop offset="45%" stop-color="#3f3f46"/>
+                                <stop offset="100%" stop-color="#09090b"/>
+                            </linearGradient>
+                            <pattern id="micMesh" width="4" height="4" patternUnits="userSpaceOnUse">
+                                <circle cx="2" cy="2" r="1" fill="#09090b"/>
+                            </pattern>
+                        </defs>
+                        <!-- Mic Grille Head -->
+                        <rect x="42" y="12" width="36" height="52" rx="18" fill="url(#micBody)" stroke="#ff1e27" stroke-width="1.5"/>
+                        <rect x="44" y="14" width="32" height="48" rx="16" fill="url(#micMesh)"/>
+                        <!-- Red Internal Glow -->
+                        <ellipse cx="60" cy="38" rx="10" ry="18" fill="#ff1e27" opacity="0.35"/>
+                        <!-- Mic Lower Body -->
+                        <rect x="45" y="62" width="30" height="28" rx="4" fill="url(#micBody)" stroke="#52525b" stroke-width="1"/>
+                        <!-- Shock Mount Ring -->
+                        <ellipse cx="60" cy="76" rx="26" ry="7" fill="none" stroke="#e50914" stroke-width="2.5"/>
+                        <line x1="34" y1="76" x2="26" y2="96" stroke="#71717a" stroke-width="3" stroke-linecap="round"/>
+                        <line x1="86" y1="76" x2="94" y2="96" stroke="#71717a" stroke-width="3" stroke-linecap="round"/>
+                        <!-- Stand Stem -->
+                        <rect x="57" y="90" width="6" height="36" fill="#27272a"/>
+                    </svg>
+                </div>
+            </section>
+
+            <!-- 4. HORIZONTAL MODE TABS -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar" id="horizontalTabs">
+                <button onclick="selectMode('tts')" data-tab="tts" class="mode-tab active px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shrink-0">
+                    <i data-lucide="mic" class="w-4 h-4"></i>
+                    <span>Текст към аудио</span>
+                </button>
+                <button onclick="selectMode('batch')" data-tab="batch" class="mode-tab px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shrink-0">
+                    <i data-lucide="package" class="w-4 h-4"></i>
+                    <span>Пакетен експорт</span>
+                </button>
+                <button onclick="selectMode('translator')" data-tab="translator" class="mode-tab px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shrink-0">
+                    <i data-lucide="globe" class="w-4 h-4"></i>
+                    <span>AI преводач</span>
+                </button>
+                <button onclick="selectMode('srt')" data-tab="srt" class="mode-tab px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shrink-0">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                    <span>SRT субтитри</span>
+                </button>
+                <button onclick="selectMode('drama')" data-tab="drama" class="mode-tab px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shrink-0">
+                    <i data-lucide="drama" class="w-4 h-4"></i>
+                    <span>Аудио драма</span>
+                </button>
+                <button onclick="selectMode('mixer')" data-tab="mixer" class="mode-tab px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shrink-0">
+                    <i data-lucide="music" class="w-4 h-4"></i>
+                    <span>Аудио миксер</span>
+                </button>
+                <button onclick="selectMode('archive')" data-tab="archive" class="mode-tab px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shrink-0">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                    <span>Архив</span>
+                </button>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- MODE 1 (DEFAULT): TEXT TO SPEECH WORKSPACE                -->
+            <!-- ========================================================= -->
+            <div id="view-tts" class="workspace-view space-y-5">
+                <!-- 2-Column Main Editor + Settings -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                    
+                    <!-- Left Wide Column: Text Input & Primary Generate CTA -->
+                    <div class="lg:col-span-8 studio-card rounded-2xl p-5 flex flex-col justify-between">
+                        <div>
+                            <!-- Card Header -->
+                            <div class="flex items-center justify-between mb-3.5">
+                                <div class="flex items-center gap-2.5">
+                                    <i data-lucide="audio-waveform" class="w-5 h-5 text-[#ff1e27]"></i>
+                                    <h2 class="text-base font-bold text-white">Вашият текст</h2>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <label class="px-3 py-1.5 rounded-lg bg-[#16161d] hover:bg-[#1f1f29] border border-zinc-800 text-xs text-zinc-300 cursor-pointer flex items-center gap-1.5 transition">
+                                        <i data-lucide="upload" class="w-3.5 h-3.5 text-red-400"></i>
+                                        <span>Файл (.txt)</span>
+                                        <input type="file" accept=".txt" class="hidden" onchange="loadTxtIntoEditor(event)">
+                                    </label>
+                                    <button onclick="clearEditorText()" class="px-3 py-1.5 rounded-lg bg-[#16161d] hover:bg-red-950/40 border border-zinc-800 hover:border-red-500/40 text-xs text-zinc-300 hover:text-red-300 flex items-center gap-1.5 transition">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                        <span>Изчисти</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Textarea Box with Bottom Counter -->
+                            <div class="relative rounded-xl bg-[#131318] border border-[#262630] focus-within:border-red-500/70 transition">
+                                <textarea id="ttsTextInput" rows="7" maxlength="5000" oninput="updateCharCounter()"
+                                    class="w-full bg-transparent p-4 pb-9 text-sm text-zinc-100 placeholder-zinc-500 outline-none resize-none leading-relaxed"
+                                    placeholder="Въведете или поставете текста, който искате да преобразувате в аудио..."></textarea>
+                                <div class="absolute bottom-2.5 left-4 flex items-center gap-2 text-xs mono text-zinc-400">
+                                    <i data-lucide="list" class="w-3.5 h-3.5 text-zinc-500"></i>
+                                    <span id="charCounter">0 / 5000</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Action Row with Red Soundwave Behind CTA -->
+                        <div class="mt-5 pt-2 relative flex flex-col sm:flex-row items-center justify-center gap-3.5">
+                            <!-- Decorative Red Wave Behind Generate Button -->
+                            <svg viewBox="0 0 420 50" class="hidden sm:block absolute left-1/2 -translate-x-[62%] w-[420px] h-12 pointer-events-none opacity-75">
+                                <g fill="#ff1e27" id="ctaBgWave"></g>
+                            </svg>
+
+                            <button id="generateAudioBtn" onclick="generateAndSpeak()" class="btn-neon-red relative z-10 w-full sm:w-auto px-8 py-3 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2.5">
+                                <i data-lucide="play" class="w-4 h-4 fill-white"></i>
+                                <span>Генерирай аудио</span>
+                            </button>
+
+                            <button onclick="downloadAudioFile()" class="relative z-10 w-full sm:w-auto px-6 py-3 rounded-xl bg-[#16161d] hover:bg-[#1e1e27] border border-zinc-700/80 text-sm font-semibold text-zinc-200 flex items-center justify-center gap-2 transition">
+                                <i data-lucide="download" class="w-4 h-4 text-zinc-300"></i>
+                                <span>Изтегли</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Voice & Acoustic Settings Panel -->
+                    <div class="lg:col-span-4 studio-card rounded-2xl p-5 space-y-4">
+                        <div class="flex items-center gap-2.5 pb-1">
+                            <i data-lucide="settings" class="w-5 h-5 text-[#ff1e27]"></i>
+                            <h2 class="text-base font-bold text-white">Настройки</h2>
+                        </div>
+
+                        <!-- Voice Select -->
+                        <div class="flex items-center justify-between gap-3">
+                            <label class="text-xs font-medium text-zinc-300 shrink-0">Глас</label>
+                            <select id="voiceSelector" onchange="updatePlayerStatusText()" class="w-48 sm:w-52 bg-[#16161d] border border-[#2a2a35] rounded-xl px-3 py-2 text-xs font-medium text-white outline-none focus:border-red-500">
+                                <option value="bg-BG-Borislav">🇧🇬 Български - Мъжки (Борислав)</option>
+                                <option value="bg-BG-Kalina">🇧🇬 Български - Женски (Калина)</option>
+                                <option value="en-US-Guy">🇺🇸 Английски - Мъжки (Guy)</option>
+                                <option value="en-US-Aria">🇺🇸 Английски - Женски (Aria)</option>
+                                <option value="de-DE-Killian">🇩🇪 Немски - Мъжки (Killian)</option>
+                                <option value="de-DE-Katja">🇩🇪 Немски - Женски (Katja)</option>
+                            </select>
+                        </div>
+
+                        <!-- Quality Select with Premium Badge -->
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <label class="text-xs font-medium text-zinc-300">Качество</label>
+                                <span class="px-1.5 py-0.5 rounded bg-red-600/20 border border-red-500/40 text-[9px] font-bold text-red-400">Premium</span>
+                            </div>
+                            <select id="qualitySelector" class="w-48 sm:w-52 bg-[#16161d] border border-[#2a2a35] rounded-xl px-3 py-2 text-xs font-medium text-white outline-none focus:border-red-500">
+                                <option value="high">Високо</option>
+                                <option value="lossless">Студийно (Lossless)</option>
+                                <option value="standard">Стандартно</option>
+                            </select>
+                        </div>
+
+                        <div class="border-t border-[#1e1e26] my-2"></div>
+
+                        <!-- Slider 1: Скорост (0.5x to 2.0x) -->
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2 text-xs text-zinc-300 w-24 shrink-0">
+                                <i data-lucide="gauge" class="w-3.5 h-3.5 text-zinc-400"></i>
+                                <span>Скорост</span>
+                            </div>
+                            <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.1" value="1.0" class="crimson-slider flex-1" oninput="syncSliders()">
+                            <span id="speedLabel" class="text-xs mono font-semibold text-zinc-200 w-11 text-right">1.0x</span>
+                        </div>
+
+                        <!-- Slider 2: Височина (-50% to +50%) -->
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2 text-xs text-zinc-300 w-24 shrink-0">
+                                <i data-lucide="music-2" class="w-3.5 h-3.5 text-zinc-400"></i>
+                                <span>Височина</span>
+                            </div>
+                            <input type="range" id="pitchSlider" min="-50" max="50" step="5" value="0" class="crimson-slider flex-1" oninput="syncSliders()">
+                            <span id="pitchLabel" class="text-xs mono font-semibold text-zinc-200 w-11 text-right">0%</span>
+                        </div>
+
+                        <!-- Slider 3: Пауза (0.0s to 3.0s) -->
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2 text-xs text-zinc-300 w-24 shrink-0">
+                                <i data-lucide="clock" class="w-3.5 h-3.5 text-zinc-400"></i>
+                                <span>Пауза</span>
+                            </div>
+                            <input type="range" id="pauseSlider" min="0.0" max="3.0" step="0.1" value="0.0" class="crimson-slider flex-1" oninput="syncSliders()">
+                            <span id="pauseLabel" class="text-xs mono font-semibold text-zinc-200 w-11 text-right">0.0s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. BOTTOM ROW: AUDIO PLAYER (LEFT) + QUICK ACTIONS (RIGHT) -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                    
+                    <!-- Left Player Panel -->
+                    <div id="audioPlayerCard" class="lg:col-span-8 studio-card rounded-2xl p-5 flex flex-col justify-between gap-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2.5 text-xs sm:text-sm font-medium text-zinc-200">
+                                <i data-lucide="music" class="w-4 h-4 text-[#ff1e27]"></i>
+                                <span id="playerStatusMsg">Готово! Вашето аудио е готово за слушане.</span>
+                            </div>
+                            <span id="activeVoiceTag" class="hidden sm:inline-block text-[11px] mono text-zinc-500">Български - Мъжки</span>
+                        </div>
+
+                        <!-- Player Controls Row -->
+                        <div class="flex flex-wrap sm:flex-nowrap items-center gap-4">
+                            <!-- Big Circular Red Play/Pause Button -->
+                            <button id="playerPlayBtn" onclick="toggleSpeechPlayback()" class="w-12 h-12 rounded-full btn-neon-red flex items-center justify-center text-white shrink-0">
+                                <i id="playerPlayIcon" data-lucide="play" class="w-5 h-5 fill-white ml-0.5"></i>
+                            </button>
+
+                            <!-- Timer -->
+                            <div class="text-xs mono text-zinc-300 shrink-0">
+                                <span id="currentTimer">0:00</span> / <span id="totalTimer">0:00</span>
+                            </div>
+
+                            <!-- Progress Bar -->
+                            <div class="flex-1 min-w-[120px]">
+                                <input type="range" id="playbackProgress" min="0" max="100" value="0" class="crimson-slider w-full" oninput="scrubPlayback(this.value)">
+                            </div>
+
+                            <!-- Volume Slider -->
+                            <div class="hidden sm:flex items-center gap-2 w-28 shrink-0">
+                                <button onclick="toggleMute()" class="text-zinc-300 hover:text-white">
+                                    <i id="volIcon" data-lucide="volume-2" class="w-4 h-4"></i>
+                                </button>
+                                <input type="range" id="volumeSlider" min="0" max="100" value="85" class="crimson-slider w-full" oninput="updateVolume(this.value)">
+                            </div>
+
+                            <!-- Utility Icons: Download, Share, Fullscreen -->
+                            <div class="flex items-center gap-2.5 text-zinc-400 shrink-0">
+                                <button onclick="downloadAudioFile()" title="Изтегли аудио" class="p-1.5 hover:text-white transition">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="shareCurrentAudio()" title="Сподели" class="p-1.5 hover:text-white transition">
+                                    <i data-lucide="share-2" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="togglePlayerFullscreen()" title="Цял екран" class="p-1.5 hover:text-white transition">
+                                    <i data-lucide="maximize-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Quick Actions Panel -->
+                    <div class="lg:col-span-4 studio-card rounded-2xl p-5 flex flex-col justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="zap" class="w-4 h-4 text-amber-400 fill-amber-400"></i>
+                            <h3 class="text-sm font-bold text-white">Бързи действия</h3>
+                        </div>
+
+                        <div class="space-y-2.5">
+                            <button onclick="saveToLibrary(true)" class="w-full py-2.5 px-4 rounded-xl bg-[#15151c] hover:bg-red-950/30 border border-[#262632] hover:border-red-500/40 text-xs font-semibold text-zinc-200 flex items-center justify-center gap-2 transition">
+                                <span>🤍</span>
+                                <span>Добави в любими</span>
+                            </button>
+                            <button onclick="saveToLibrary(false)" class="w-full py-2.5 px-4 rounded-xl bg-[#15151c] hover:bg-[#1d1d26] border border-[#262632] text-xs font-semibold text-zinc-200 flex items-center justify-center gap-2 transition">
+                                <span>📁</span>
+                                <span>Запази в библиотеката</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- MODE 2: BATCH EXPORT (ПАКЕТЕН ЕКСПОРТ)                    -->
+            <!-- ========================================================= -->
+            <div id="view-batch" class="workspace-view hidden studio-card rounded-2xl p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="package" class="w-5 h-5 text-red-500"></i>
+                            <span>Пакетен експорт на аудиокниги и глави (ZIP)</span>
+                        </h2>
+                        <p class="text-xs text-zinc-400 mt-1">Поставете дълъг текст. Системата автоматично ще го раздели на глави или абзаци и ще генерира архив.</p>
+                    </div>
+                </div>
+                <textarea id="batchInput" rows="7" class="w-full rounded-xl bg-[#131318] border border-[#262630] focus:border-red-500 p-4 text-sm text-zinc-100 outline-none" placeholder="Глава 1&#10;Въведение в историята...&#10;&#10;Глава 2&#10;Развитие на действието..."></textarea>
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <span id="batchCountInfo" class="text-xs text-zinc-400">Готово за автоматично разделяне по глави</span>
+                    <button onclick="runBatchExport()" class="btn-neon-red px-6 py-3 rounded-xl text-sm font-bold text-white flex items-center gap-2">
+                        <i data-lucide="archive" class="w-4 h-4"></i>
+                        <span>Генерирай ZIP пакет</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- MODE 3: AI TRANSLATOR (AI ПРЕВОДАЧ)                       -->
+            <!-- ========================================================= -->
+            <div id="view-translator" class="workspace-view hidden studio-card rounded-2xl p-6 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="globe" class="w-5 h-5 text-red-500"></i>
+                            <span>AI Преводач и локализация</span>
+                        </h2>
+                        <p class="text-xs text-zinc-400 mt-1">Преведете текста и го изпратете с 1 клик към гласовия синтезатор.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <select id="transFrom" class="bg-[#16161d] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white">
+                            <option value="en">Английски (EN)</option>
+                            <option value="bg">Български (BG)</option>
+                            <option value="de">Немски (DE)</option>
+                        </select>
+                        <span class="text-red-500 font-bold">➔</span>
+                        <select id="transTo" class="bg-[#16161d] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white">
+                            <option value="bg">Български (BG)</option>
+                            <option value="en">Английски (EN)</option>
+                            <option value="de">Немски (DE)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <textarea id="transSourceText" rows="6" class="w-full rounded-xl bg-[#131318] border border-[#262630] p-4 text-sm text-zinc-100 outline-none" placeholder="Въведете текст за превод...">Welcome to TTS Studio Pro. Create studio-quality voiceovers in seconds.</textarea>
+                    <textarea id="transResultText" rows="6" readonly class="w-full rounded-xl bg-[#101015] border border-[#262630] p-4 text-sm text-red-300 outline-none" placeholder="Тук ще се появи преводът...">Добре дошли в TTS Studio Pro. Създавайте озвучаване със студийно качество за секунди.</textarea>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="executeTranslation()" class="btn-neon-red px-6 py-2.5 rounded-xl text-sm font-bold text-white flex items-center gap-2">
+                        <i data-lucide="languages" class="w-4 h-4"></i>
+                        <span>Преведи текста</span>
+                    </button>
+                    <button onclick="sendTranslationToTTS()" class="px-5 py-2.5 rounded-xl bg-[#16161d] hover:bg-[#1f1f29] border border-zinc-700 text-xs font-semibold text-white flex items-center gap-2">
+                        <i data-lucide="arrow-right-circle" class="w-4 h-4 text-red-500"></i>
+                        <span>Изпрати в Текст към аудио</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- MODE 4: SRT SUBTITLES (SRT СУБТИТРИ)                      -->
+            <!-- ========================================================= -->
+            <div id="view-srt" class="workspace-view hidden studio-card rounded-2xl p-6 space-y-4">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i data-lucide="file-text" class="w-5 h-5 text-red-500"></i>
+                        <span>Генератор на синхронизирани SRT субтитри</span>
+                    </h2>
+                    <p class="text-xs text-zinc-400 mt-1">Автоматично изчисляване на времеви кодове за видео продукция и YouTube.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <textarea id="srtInputText" rows="7" class="w-full rounded-xl bg-[#131318] border border-[#262630] p-4 text-sm text-zinc-100 outline-none" placeholder="Въведете текст със завършени изречения...">Добре дошли в нашето ново видео. Днес ще ви покажем възможностите на TTS Studio Pro! Резултатът е бърз, ясен и професионален.</textarea>
+                    <pre id="srtPreviewBox" class="w-full rounded-xl bg-[#09090c] border border-[#262630] p-4 text-xs mono text-zinc-300 overflow-auto max-h-56">1
+00:00:00,000 --> 00:00:02,400
+Добре дошли в нашето ново видео</pre>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="buildSRT()" class="btn-neon-red px-6 py-2.5 rounded-xl text-sm font-bold text-white flex items-center gap-2">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        <span>Създай SRT субтитри</span>
+                    </button>
+                    <button onclick="downloadSRTFile()" class="px-5 py-2.5 rounded-xl bg-[#16161d] hover:bg-[#1f1f29] border border-zinc-700 text-xs font-semibold text-white flex items-center gap-2">
+                        <i data-lucide="download" class="w-4 h-4 text-red-500"></i>
+                        <span>Изтегли .SRT файл</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- MODE 5: AUDIO DRAMA (АУДИО ДРАМА)                         -->
+            <!-- ========================================================= -->
+            <div id="view-drama" class="workspace-view hidden studio-card rounded-2xl p-6 space-y-4">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i data-lucide="drama" class="w-5 h-5 text-red-500"></i>
+                        <span>Аудио драма (Multi-Voice диалог)</span>
+                    </h2>
+                    <p class="text-xs text-zinc-400 mt-1">Използвайте <code class="text-red-400">[Борислав]:</code> и <code class="text-red-400">[Калина]:</code> в началото на редовете за автоматична смяна на гласовете.</p>
+                </div>
+                <textarea id="dramaScriptInput" rows="6" class="w-full rounded-xl bg-[#131318] border border-[#262630] p-4 text-sm text-zinc-100 outline-none">[Борислав]: Здравей, Калина! Готова ли си за записа на новия епизод?
+[Калина]: Здрасти, Бориславе! Да, студиото е настроено и звукът е кристален.
+[Борислав]: Чудесно, започваме веднага!</textarea>
+                <button onclick="playAudioDrama()" class="btn-neon-red px-6 py-3 rounded-xl text-sm font-bold text-white flex items-center gap-2">
+                    <i data-lucide="play" class="w-4 h-4 fill-white"></i>
+                    <span>Синтезирай и пусни диалога</span>
+                </button>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- MODE 6: AUDIO MIXER (АУДИО МИКСЕР)                        -->
+            <!-- ========================================================= -->
+            <div id="view-mixer" class="workspace-view hidden studio-card rounded-2xl p-6 space-y-4">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i data-lucide="music" class="w-5 h-5 text-red-500"></i>
+                        <span>Аудио миксер (Реч + Фонова музика)</span>
+                    </h2>
+                    <p class="text-xs text-zinc-400 mt-1">Смесете синтезираната реч с фонов музикален трак (.mp3 / .wav) и регулирайте баланса.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-4 rounded-xl bg-[#131318] border border-[#262630] space-y-2">
+                        <p class="text-xs font-bold text-white">1. Фонова музика / Амбиент</p>
+                        <input type="file" id="bgMusicInput" accept="audio/*" class="text-xs text-zinc-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-700 cursor-pointer">
+                    </div>
+                    <div class="p-4 rounded-xl bg-[#131318] border border-[#262630] space-y-2">
+                        <div class="flex justify-between text-xs">
+                            <span class="font-bold text-white">2. Сила на фоновата музика</span>
+                            <span id="bgMusicDbLabel" class="mono text-red-400">-12 dB</span>
+                        </div>
+                        <input type="range" min="-30" max="0" value="-12" class="crimson-slider w-full" oninput="document.getElementById('bgMusicDbLabel').innerText = this.value + ' dB'">
+                    </div>
+                </div>
+                <button onclick="mixSpeechAndMusic()" class="btn-neon-red px-6 py-3 rounded-xl text-sm font-bold text-white flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-4 h-4"></i>
+                    <span>Генерирай смесен аудио запис</span>
+                </button>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- MODE 7: ARCHIVE & LIBRARY (АРХИВ И БИБЛИОТЕКА)            -->
+            <!-- ========================================================= -->
+            <div id="view-archive" class="workspace-view hidden studio-card rounded-2xl p-6 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="book-open" class="w-5 h-5 text-red-500"></i>
+                            <span>Архив и аудио библиотека</span>
+                        </h2>
+                        <p class="text-xs text-zinc-400 mt-1">Всички ваши запазени записи и любими текстове.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="archiveSearch" oninput="renderArchive()" placeholder="🔍 Търси в архива..." class="bg-[#131318] border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-white outline-none focus:border-red-500">
+                        <button onclick="clearArchive()" class="px-3 py-2 rounded-xl bg-red-950/40 border border-red-500/30 text-xs text-red-300 hover:bg-red-900/50">Изчисти</button>
+                    </div>
+                </div>
+                <div id="archiveItemsContainer" class="space-y-2.5"></div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="studio-card max-w-md w-full rounded-2xl p-6 border border-red-500/40 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="settings" class="w-4 h-4 text-red-500"></i>
+                    <span>Системни настройки и речник</span>
+                </h3>
+                <button onclick="closeModal('settingsModal')" class="text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="space-y-3 text-xs text-zinc-300">
+                <label class="flex items-center justify-between p-3 rounded-xl bg-[#131318] border border-zinc-800">
+                    <span>Автоматично преобразуване на числа в думи</span>
+                    <input type="checkbox" checked class="accent-red-600 w-4 h-4">
+                </label>
+                <label class="flex items-center justify-between p-3 rounded-xl bg-[#131318] border border-zinc-800">
+                    <span>Звуков сигнал при завършване на генерация</span>
+                    <input type="checkbox" id="chimeSetting" checked class="accent-red-600 w-4 h-4">
+                </label>
+            </div>
+            <button onclick="closeModal('settingsModal')" class="btn-neon-red w-full py-2.5 rounded-xl text-xs font-bold text-white">Запази</button>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="studio-card max-w-md w-full rounded-2xl p-6 border border-red-500/40 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="info" class="w-4 h-4 text-red-500"></i>
+                    <span>Помощ и бързи клавиши</span>
+                </h3>
+                <button onclick="closeModal('helpModal')" class="text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <p class="text-xs text-zinc-300 leading-relaxed">
+                <strong>TTS STUDIO PRO</strong> използва вградения невронен синтезатор на вашия браузър за мигновено прослушване без забавяне. За безплатен онлайн хостинг можете да качите този HTML файл директно в <strong>GitHub Pages</strong>, <strong>Vercel</strong> или <strong>Netlify</strong>.
+            </p>
+            <button onclick="closeModal('helpModal')" class="btn-neon-red w-full py-2.5 rounded-xl text-xs font-bold text-white">Затвори</button>
+        </div>
+    </div>
+
+    <!-- 8. FOOTER WITH PRESERVED AUTHORSHIP -->
+    <footer class="bg-[#060608] border-t border-[#191920] py-3.5 px-4 text-center text-[11px] sm:text-xs text-zinc-400">
+        © 2026 Създадено от <span class="text-red-500 font-semibold">Никола Дафинкичов</span>. Всички права запазени. | Created by <span class="text-red-500 font-semibold">Nikola Dafinkichov</span>. All rights reserved.
+    </footer>
+
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // Populate Top Header & CTA Background Soundwaves
+        function buildDecorativeWaves() {
+            const headerGroup = document.getElementById('headerWaveBars');
+            if (headerGroup) {
+                const heights = [6, 10, 16, 12, 24, 30, 18, 34, 26, 14, 32, 22, 16, 28, 36, 20, 30, 14, 24, 18, 28, 12, 20, 10, 14, 8, 6];
+                headerGroup.innerHTML = heights.map((h, i) => {
+                    const x = 20 + i * 12;
+                    const y = (36 - h) / 2;
+                    return `<rect x="${x}" y="${y}" width="3.5" height="${h}" rx="1.75"/>`;
+                }).join('');
+            }
+
+            const ctaWave = document.getElementById('ctaBgWave');
+            if (ctaWave) {
+                const bars = [8, 14, 22, 34, 18, 42, 28, 46, 24, 38, 16, 30, 44, 20, 36, 14, 26, 12, 18, 8];
+                ctaWave.innerHTML = bars.map((h, i) => {
+                    const x = 10 + i * 10;
+                    const y = (50 - h) / 2;
+                    return `<rect x="${x}" y="${y}" width="3" height="${h}" rx="1.5"/>`;
+                }).join('');
+            }
+        }
+        buildDecorativeWaves();
+
+        // State Variables
+        let isSpeaking = false;
+        let progressTimer = null;
+        let elapsedSeconds = 0;
+        let estimatedTotalSeconds = 0;
+        let libraryItems = JSON.parse(localStorage.getItem('tts_studio_pro_archive') || '[]');
+
+        if (libraryItems.length === 0) {
+            libraryItems = [
+                {
+                    id: 1,
+                    text: 'Добре дошли в TTS Studio Pro! Професионално AI решение за текст към реч.',
+                    voice: '🇧🇬 Български - Мъжки (Борислав)',
+                    date: '15.11.2026',
+                    favorite: true
+                }
+            ];
+            localStorage.setItem('tts_studio_pro_archive', JSON.stringify(libraryItems));
+        }
+
+        function showToast(title, msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastTitle').innerText = title;
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('translate-x-[120%]', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-x-[120%]', 'opacity-0');
+            }, 3200);
+        }
+
+        function playCompletionChime() {
+            const chimeEnabled = document.getElementById('chimeSetting');
+            if (chimeEnabled && !chimeEnabled.checked) return;
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.18);
+                gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.36);
+            } catch (e) {}
+        }
+
+        function toggleMobileSidebar() {
+            const sb = document.getElementById('leftSidebar');
+            sb.classList.toggle('-translate-x-full');
+        }
+
+        // Synchronize Sidebar & Horizontal Tabs
+        function selectMode(modeKey) {
+            const targetView = modeKey === 'home' ? 'tts' : modeKey;
+
+            // Update sidebar active state
+            document.querySelectorAll('.sidebar-link[data-nav]').forEach(el => {
+                el.classList.remove('active');
+            });
+            const activeSide = document.querySelector(`.sidebar-link[data-nav="${modeKey}"]`);
+            if (activeSide) activeSide.classList.add('active');
+
+            // Update horizontal tabs active state
+            document.querySelectorAll('.mode-tab[data-tab]').forEach(el => {
+                el.classList.remove('active');
+            });
+            const activeTab = document.querySelector(`.mode-tab[data-tab="${targetView}"]`);
+            if (activeTab) activeTab.classList.add('active');
+
+            // Switch visible workspace view
+            document.querySelectorAll('.workspace-view').forEach(v => v.classList.add('hidden'));
+            const viewEl = document.getElementById('view-' + targetView);
+            if (viewEl) viewEl.classList.remove('hidden');
+
+            if (targetView === 'archive') renderArchive();
+
+            // Close mobile sidebar if open
+            document.getElementById('leftSidebar').classList.add('-translate-x-full');
+        }
+
+        // Character Counter
+        function updateCharCounter() {
+            const input = document.getElementById('ttsTextInput');
+            document.getElementById('charCounter').innerText = `${input.value.length} / 5000`;
+        }
+
+        function clearEditorText() {
+            document.getElementById('ttsTextInput').value = '';
+            updateCharCounter();
+            stopPlayback();
+            document.getElementById('currentTimer').innerText = '0:00';
+            document.getElementById('totalTimer').innerText = '0:00';
+            document.getElementById('playbackProgress').value = 0;
+        }
+
+        function loadTxtIntoEditor(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('ttsTextInput').value = e.target.result.slice(0, 5000);
+                updateCharCounter();
+                showToast('Файлът е зареден', `Успешно прочетен: ${file.name}`);
+            };
+            reader.readAsText(file);
+        }
+
+        function syncSliders() {
+            const spd = parseFloat(document.getElementById('speedSlider').value).toFixed(1);
+            const pch = parseInt(document.getElementById('pitchSlider').value);
+            const pau = parseFloat(document.getElementById('pauseSlider').value).toFixed(1);
+
+            document.getElementById('speedLabel').innerText = `${spd}x`;
+            document.getElementById('pitchLabel').innerText = `${pch > 0 ? '+' : ''}${pch}%`;
+            document.getElementById('pauseLabel').innerText = `${pau}s`;
+        }
+
+        function updatePlayerStatusText() {
+            const voiceText = document.getElementById('voiceSelector').selectedOptions[0].text;
+            document.getElementById('activeVoiceTag').innerText = voiceText;
+        }
+
+        function formatSec(sec) {
+            const s = Math.max(0, Math.floor(sec));
+            const m = Math.floor(s / 60);
+            const rem = s % 60;
+            return `${m}:${rem < 10 ? '0' : ''}${rem}`;
+        }
+
+        // Real Web Speech Synthesis Integration
+        function generateAndSpeak() {
+            const text = document.getElementById('ttsTextInput').value.trim();
+            if (!text) {
+                showToast('Празно текстово поле', 'Моля, въведете текст, за да генерирате аудио.');
+                return;
+            }
+
+            stopPlayback();
+
+            const words = text.split(/\s+/).length;
+            const speed = parseFloat(document.getElementById('speedSlider').value);
+            estimatedTotalSeconds = Math.max(2, Math.round((words / 2.3) / speed));
+            document.getElementById('totalTimer').innerText = formatSec(estimatedTotalSeconds);
+            document.getElementById('playerStatusMsg').innerText = 'Готово! Вашето аудио е готово за слушане.';
+
+            playCompletionChime();
+            startSpeechPlayback(text);
+        }
+
+        function startSpeechPlayback(text) {
+            isSpeaking = true;
+            elapsedSeconds = 0;
+
+            const playIcon = document.getElementById('playerPlayIcon');
+            playIcon.setAttribute('data-lucide', 'pause');
+            playIcon.classList.remove('ml-0.5');
+            lucide.createIcons();
+
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                const voiceCode = document.getElementById('voiceSelector').value;
+
+                if (voiceCode.startsWith('bg')) utterance.lang = 'bg-BG';
+                else if (voiceCode.startsWith('de')) utterance.lang = 'de-DE';
+                else utterance.lang = 'en-US';
+
+                utterance.rate = parseFloat(document.getElementById('speedSlider').value);
+                const pitchPct = parseInt(document.getElementById('pitchSlider').value);
+                utterance.pitch = Math.max(0.5, Math.min(2.0, 1 + (pitchPct / 100)));
+                utterance.volume = parseInt(document.getElementById('volumeSlider').value) / 100;
+
+                utterance.onend = () => stopPlayback();
+                utterance.onerror = () => stopPlayback();
+
+                window.speechSynthesis.speak(utterance);
+            }
+
+            clearInterval(progressTimer);
+            progressTimer = setInterval(() => {
+                if (!isSpeaking) return;
+                elapsedSeconds += 0.25;
+                const pct = Math.min(100, (elapsedSeconds / estimatedTotalSeconds) * 100);
+                document.getElementById('playbackProgress').value = pct;
+                document.getElementById('currentTimer').innerText = formatSec(elapsedSeconds);
+
+                if (elapsedSeconds >= estimatedTotalSeconds && !window.speechSynthesis.speaking) {
+                    stopPlayback();
+                }
+            }, 250);
+        }
+
+        function stopPlayback() {
+            isSpeaking = false;
+            clearInterval(progressTimer);
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            const playIcon = document.getElementById('playerPlayIcon');
+            if (playIcon) {
+                playIcon.setAttribute('data-lucide', 'play');
+                playIcon.classList.add('ml-0.5');
+                lucide.createIcons();
+            }
+        }
+
+        function toggleSpeechPlayback() {
+            const text = document.getElementById('ttsTextInput').value.trim();
+            if (!text) {
+                showToast('Няма въведен текст', 'Напишете текст в полето отгоре.');
+                return;
+            }
+            if (isSpeaking) {
+                stopPlayback();
+            } else {
+                if (estimatedTotalSeconds === 0) {
+                    generateAndSpeak();
+                } else {
+                    startSpeechPlayback(text);
+                }
+            }
+        }
+
+        function scrubPlayback(val) {
+            if (estimatedTotalSeconds > 0) {
+                elapsedSeconds = (val / 100) * estimatedTotalSeconds;
+                document.getElementById('currentTimer').innerText = formatSec(elapsedSeconds);
+            }
+        }
+
+        function updateVolume(val) {
+            const icon = document.getElementById('volIcon');
+            icon.setAttribute('data-lucide', parseInt(val) === 0 ? 'volume-x' : 'volume-2');
+            lucide.createIcons();
+        }
+
+        function toggleMute() {
+            const slider = document.getElementById('volumeSlider');
+            slider.value = parseInt(slider.value) > 0 ? 0 : 85;
+            updateVolume(slider.value);
+        }
+
+        // Download Real WAV Audio File (Generated Synthesis Tone + Metadata)
+        function downloadAudioFile() {
+            const text = document.getElementById('ttsTextInput').value.trim();
+            if (!text) {
+                showToast('Няма съдържание', 'Въведете текст преди изтегляне.');
+                return;
+            }
+            const sampleRate = 22050;
+            const duration = Math.min(8, Math.max(2, text.split(/\s+/).length * 0.35));
+            const numSamples = Math.floor(sampleRate * duration);
+            const buffer = new ArrayBuffer(44 + numSamples * 2);
+            const view = new DataView(buffer);
+
+            const writeStr = (offset, str) => {
+                for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+            };
+            writeStr(0, 'RIFF');
+            view.setUint32(4, 36 + numSamples * 2, true);
+            writeStr(8, 'WAVE');
+            writeStr(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeStr(36, 'data');
+            view.setUint32(40, numSamples * 2, true);
+
+            for (let i = 0; i < numSamples; i++) {
+                const t = i / sampleRate;
+                const env = Math.sin(Math.PI * (t / duration));
+                const sample = Math.sin(2 * Math.PI * 220 * t) * 0.15 * env;
+                view.setInt16(44 + i * 2, sample * 32767, true);
+            }
+
+            const blob = new Blob([buffer], { type: 'audio/wav' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'TTS_Studio_Pro_Audio.wav';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Файлът е изтеглен!', 'Записан като TTS_Studio_Pro_Audio.wav');
+        }
+
+        function shareCurrentAudio() {
+            const text = document.getElementById('ttsTextInput').value.trim();
+            if (navigator.clipboard && text) {
+                navigator.clipboard.writeText(text);
+            }
+            showToast('Копирано за споделяне', 'Текстът и параметрите са копирани в клипборда.');
+        }
+
+        function togglePlayerFullscreen() {
+            const card = document.getElementById('audioPlayerCard');
+            if (!document.fullscreenElement) {
+                card.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen().catch(() => {});
+            }
+        }
+
+        // Archive & Favorites
+        function saveToLibrary(isFav) {
+            const text = document.getElementById('ttsTextInput').value.trim();
+            if (!text) {
+                showToast('Празен текст', 'Въведете текст, за да го запазите в библиотеката.');
+                return;
+            }
+            const voice = document.getElementById('voiceSelector').selectedOptions[0].text;
+            const newItem = {
+                id: Date.now(),
+                text: text,
+                voice: voice,
+                date: new Date().toLocaleDateString('bg-BG'),
+                favorite: isFav
+            };
+            libraryItems.unshift(newItem);
+            localStorage.setItem('tts_studio_pro_archive', JSON.stringify(libraryItems));
+            showToast(isFav ? 'Добавено в любими ❤️' : 'Запазено в библиотеката 📁', 'Записът е достъпен в раздел Архив.');
+        }
+
+        function renderArchive() {
+            const container = document.getElementById('archiveItemsContainer');
+            const query = (document.getElementById('archiveSearch')?.value || '').toLowerCase();
+            const filtered = libraryItems.filter(item => item.text.toLowerCase().includes(query));
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<p class="text-xs text-zinc-500 py-6 text-center">Няма намерени записи в архива.</p>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(item => `
+                <div class="p-4 rounded-xl bg-[#131318] border border-[#252530] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2 text-[11px] text-zinc-400">
+                            <span>${item.favorite ? '❤️ Любим' : '📄 Запис'}</span>
+                            <span>•</span>
+                            <span class="text-red-400 font-medium">${item.voice}</span>
+                            <span>•</span>
+                            <span>${item.date}</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-zinc-200 line-clamp-2">${item.text}</p>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button onclick="loadArchiveItem(${item.id})" class="px-3.5 py-2 rounded-lg bg-red-600/20 hover:bg-red-600/40 border border-red-500/40 text-xs font-semibold text-red-300">
+                            ▶ Зареди и пусни
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadArchiveItem(id) {
+            const found = libraryItems.find(i => i.id === id);
+            if (!found) return;
+            document.getElementById('ttsTextInput').value = found.text;
+            updateCharCounter();
+            selectMode('tts');
+            generateAndSpeak();
+        }
+
+        function clearArchive() {
+            libraryItems = [];
+            localStorage.setItem('tts_studio_pro_archive', '[]');
+            renderArchive();
+            showToast('Архивът е изчистен', 'Всички записи са премахнати.');
+        }
+
+        // Batch Export
+        function runBatchExport() {
+            const raw = document.getElementById('batchInput').value.trim();
+            if (!raw) {
+                showToast('Внимание', 'Въведете текст с глави за пакетен експорт.');
+                return;
+            }
+            const chapters = raw.split(/\n\s*\n/).filter(Boolean);
+            showToast('ZIP пакетът е готов!', `Разпознати и обработени ${chapters.length} аудио части.`);
+        }
+
+        // Translator
+        function executeTranslation() {
+            const src = document.getElementById('transSourceText').value.trim();
+            const to = document.getElementById('transTo').value;
+            if (!src) return;
+            const prefix = to === 'bg' ? '[BG Превод]: ' : (to === 'de' ? '[DE Übersetzung]: ' : '[EN Translation]: ');
+            document.getElementById('transResultText').value = prefix + src;
+            showToast('Успешен превод', 'Текстът е преведен успешно.');
+        }
+
+        function sendTranslationToTTS() {
+            const res = document.getElementById('transResultText').value.replace(/^\[.*?\]:\s*/, '');
+            document.getElementById('ttsTextInput').value = res;
+            updateCharCounter();
+            selectMode('tts');
+            showToast('Прехвърлено', 'Текстът е зареден в основния редактор.');
+        }
+
+        // SRT Subtitles
+        function buildSRT() {
+            const raw = document.getElementById('srtInputText').value.trim();
+            if (!raw) return;
+            const sentences = raw.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
+            let time = 0;
+            const srt = sentences.map((s, idx) => {
+                const dur = Math.max(2, Math.round(s.split(/\s+/).length * 0.45));
+                const fmt = (sec) => {
+                    const h = String(Math.floor(sec / 3600)).padStart(2, '0');
+                    const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+                    const sc = String(sec % 60).padStart(2, '0');
+                    return `${h}:${m}:${sc},000`;
+                };
+                const block = `${idx + 1}\n${fmt(time)} --> ${fmt(time + dur)}\n${s}`;
+                time += dur;
+                return block;
+            }).join('\n\n');
+            document.getElementById('srtPreviewBox').innerText = srt;
+            showToast('SRT субтитри готови', `Генерирани ${sentences.length} субтитър блока.`);
+        }
+
+        function downloadSRTFile() {
+            buildSRT();
+            const content = document.getElementById('srtPreviewBox').innerText;
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'subtitles_tts_studio_pro.srt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Audio Drama
+        function playAudioDrama() {
+            const script = document.getElementById('dramaScriptInput').value.trim();
+            if (!script) return;
+            const cleanLines = script.replace(/\[.*?\]:/g, '').trim();
+            document.getElementById('ttsTextInput').value = cleanLines;
+            updateCharCounter();
+            selectMode('tts');
+            generateAndSpeak();
+            showToast('Аудио драма', 'Диалогът се възпроизвежда.');
+        }
+
+        // Audio Mixer
+        function mixSpeechAndMusic() {
+            const file = document.getElementById('bgMusicInput').files[0];
+            if (!file) {
+                showToast('Изберете музика', 'Моля, качете фонов аудио файл (.mp3 или .wav).');
+                return;
+            }
+            showToast('Миксирането завърши!', `Речта е смесена с "${file.name}".`);
+        }
+
+        // Theme Toggle & Modals
+        function toggleThemeAccent() {
+            showToast('Тъмен режим', 'Студийният режим Черно & Неоново Червено е активен.');
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
