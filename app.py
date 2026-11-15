@@ -379,10 +379,12 @@ def clean_and_optimize_speech(text):
     text = re.sub(r'<[^>]+>', '', text)
     text = convert_numbers_to_words(text)
 
-    # --- УМНИ ФОНЕТИЧНИ КОРЕКЦИИ НА АБРЕВИАТУРИ ---
-    text = re.sub(r'\b[bб]?sms\b', 'би ес ем ес', text, flags=re.IGNORECASE)
-    text = re.sub(r'\bpin\b', 'пин', text, flags=re.IGNORECASE)
-    text = re.sub(r'\botp\b', 'оу ти пи', text, flags=re.IGNORECASE)
+    # --- СТРИКТНО РАЗГРАНИЧАВАНЕ НА bSMS И SMS ---
+    # 1. Първо заменяме bSMS (с латинска b или кирилска б) -> "би ес ем ес"
+    text = re.sub(r'\b[bб]sms\b', 'би ес ем ес', text, flags=re.IGNORECASE)
+    
+    # 2. След това заменяме само обикновеното SMS (без b отпред) -> "ес ем ес"
+    text = re.sub(r'\bsms\b', 'ес ем ес', text, flags=re.IGNORECASE)
 
     # Зареждане на потребителския речник от базата данни
     active_lexicon = st.session_state.lexicon_profiles[st.session_state.active_profile]
