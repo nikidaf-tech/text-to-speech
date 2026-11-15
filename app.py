@@ -378,9 +378,17 @@ def convert_numbers_to_words(text):
 def clean_and_optimize_speech(text):
     text = re.sub(r'<[^>]+>', '', text)
     text = convert_numbers_to_words(text)
+
+    # --- УМНИ ФОНЕТИЧНИ КОРЕКЦИИ НА АБРЕВИАТУРИ ---
+    text = re.sub(r'\b[bб]?sms\b', 'би ес ем ес', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bpin\b', 'пин', text, flags=re.IGNORECASE)
+    text = re.sub(r'\botp\b', 'оу ти пи', text, flags=re.IGNORECASE)
+
+    # Зареждане на потребителския речник от базата данни
     active_lexicon = st.session_state.lexicon_profiles[st.session_state.active_profile]
     for eng, bg in active_lexicon.items():
         text = text.replace(eng, bg)
+
     text = text.replace('/', ' ')
     text = re.sub(r'[\\|#_~^`]', ' ', text)
     text = re.sub(r'\bнай\s*-\s*', 'най', text, flags=re.IGNORECASE)
