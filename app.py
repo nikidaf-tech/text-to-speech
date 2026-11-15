@@ -357,12 +357,9 @@ def clean_and_optimize_speech(text):
     text = re.sub(r'<[^>]+>', '', text)
     text = convert_numbers_to_words(text)
 
-    # --- ПРЕЦИЗНО ФОНЕТИЧНО ОФОРМЯНЕ ЧРЕЗ SSML ТАГОВЕ ---
-    ssml_bsms = '<phoneme alphabet="ipa" ph="ˈbiː ˈɛs ˈɛm ˈɛs">bSMS</phoneme>'
-    text = re.sub(r'\b[bб]sms\b', ssml_bsms, text, flags=re.IGNORECASE)
-
-    ssml_sms = '<phoneme alphabet="ipa" ph="ˈɛs ˈɛm ˈɛs">SMS</phoneme>'
-    text = re.sub(r'\bsms\b', ssml_sms, text, flags=re.IGNORECASE)
+    # --- ЧИСТО ФОНЕТИЧНО ЗАМЕСТВАНЕ БЕЗ СПЕЦИАЛНИ СИМВОЛИ ---
+    text = re.sub(r'\b[bб]sms\b', 'би ес ем ес', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bsms\b', 'ес ем ес', text, flags=re.IGNORECASE)
 
     # Зареждане на потребителския речник от базата данни
     active_lexicon = st.session_state.lexicon_profiles[st.session_state.active_profile]
@@ -413,8 +410,7 @@ def run_async_safe(coro):
 async def generate_audio_bytes_async(text, voice, rate_s, pitch_s, volume_s, engine_choice):
     clean_base_text = clean_and_optimize_speech(text)
     if "Edge" in engine_choice:
-        ssml_wrap = f"<speak>{clean_base_text}</speak>"
-        communicate = edge_tts.Communicate(ssml_wrap, voice, rate=rate_s, pitch=pitch_s, volume=volume_s)
+        communicate = edge_tts.Communicate(clean_base_text, voice, rate=rate_s, pitch=pitch_s, volume=volume_s)
         audio_buffer = io.BytesIO()
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":
@@ -422,8 +418,7 @@ async def generate_audio_bytes_async(text, voice, rate_s, pitch_s, volume_s, eng
         audio_buffer.seek(0)
         return audio_buffer.read()
     else:
-        plain_text = re.sub(r'<[^>]+>', '', clean_base_text)
-        tts = gTTS(text=plain_text, lang=voice, slow=False)
+        tts = gTTS(text=clean_base_text, lang=voice, slow=False)
         fp = io.BytesIO()
         tts.write_to_fp(fp)
         fp.seek(0)
