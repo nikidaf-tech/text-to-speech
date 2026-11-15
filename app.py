@@ -379,11 +379,10 @@ def clean_and_optimize_speech(text):
     text = re.sub(r'<[^>]+>', '', text)
     text = convert_numbers_to_words(text)
 
-    # --- ПРЕЦИЗНО ПРОИЗНОШЕНИЕ БЕЗ КРАЙНО "Ъ" ---
-    # Използваме пунктуация (запетайки и кратки спирания), които принуждават синтезатора
-    # да отсече звука рязко, вместо да добавя излишно призвучно "ъ".
-    text = re.sub(r'\b[bб]sms\b', 'би, ес, ем, ес.', text, flags=re.IGNORECASE)
-    text = re.sub(r'\bsms\b', 'ес, ем, ес.', text, flags=re.IGNORECASE)
+    # --- ПРЕЦИЗНО ИЗГОВАРЯНЕ НА bSMS И SMS БЕЗ КРАЙНО "Ъ" ---
+    # Използваме микропаузи с точки и запетайки между буквите, за да отсечем звука
+    text = re.sub(r'\b[bб]sms\b', 'би. ес. ем. ес.', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bsms\b', 'ес. ем. ес.', text, flags=re.IGNORECASE)
 
     # Зареждане на потребителския речник от базата данни
     active_lexicon = st.session_state.lexicon_profiles[st.session_state.active_profile]
