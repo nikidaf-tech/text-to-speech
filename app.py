@@ -357,9 +357,10 @@ def clean_and_optimize_speech(text):
     text = re.sub(r'<[^>]+>', '', text)
     text = convert_numbers_to_words(text)
 
-    # --- ЧИСТО ФОНЕТИЧНО ЗАМЕСТВАНЕ БЕЗ СПЕЦИАЛНИ СИМВОЛИ ---
-    text = re.sub(r'\b[bб]sms\b', 'би ес ем ес', text, flags=re.IGNORECASE)
-    text = re.sub(r'\bsms\b', 'ес ем ес', text, flags=re.IGNORECASE)
+    # --- ИЗПРАВЕНО ФОНЕТИЧНО ЗАМЕСТВАНЕ БЕЗ КРАЙНО "Ъ" ---
+    # Добавяме тирета и специално подбрани съчетания, за да се отсече меката съгласна
+    text = re.sub(r'\b[bб]sms\b', 'би-ес-ем-ес.', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bsms\b', 'ес-ем-ес.', text, flags=re.IGNORECASE)
 
     # Зареждане на потребителския речник от базата данни
     active_lexicon = st.session_state.lexicon_profiles[st.session_state.active_profile]
