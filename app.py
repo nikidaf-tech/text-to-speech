@@ -1,5 +1,7 @@
 import os
 import re
+import time
+import html
 import asyncio
 import io
 import zipfile
@@ -18,43 +20,70 @@ from num2words import num2words
 
 
 # --- 1. ОПТИМИЗИРАНА БАЗА ДАННИ И КЕШИРАНЕ ---
-@st.cache_resource
-def init_db():
+def get_db_connection():
     conn = sqlite3.connect('tts_studio_pro.db', check_same_thread=False)
-    c = conn.cursor()
-    c.execute('''
-              CREATE TABLE IF NOT EXISTS history
-              (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  text TEXT,
-                  voice TEXT,
-                  audio BLOB,
-                  timestamp TEXT,
-                  is_favorite INTEGER DEFAULT 0,
-                  tags TEXT DEFAULT ''
-              )
-              ''')
-    c.execute('''
-              CREATE TABLE IF NOT EXISTS lexicon
-              (
-                  profile TEXT,
-                  word TEXT,
-                  replacement TEXT,
-                  PRIMARY KEY (profile, word)
-              )
-              ''')
-    conn.commit()
     return conn
 
 
-db_conn = init_db()
+@st.cache_resource
+def init_db():
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute('''
+                  CREATE TABLE IF NOT EXISTS history
+                  (
+                      id
+                      INTEGER
+                      PRIMARY
+                      KEY
+                      AUTOINCREMENT,
+                      text
+                      TEXT,
+                      voice
+                      TEXT,
+                      audio
+                      BLOB,
+                      timestamp
+                      TEXT,
+                      is_favorite
+                      INTEGER
+                      DEFAULT
+                      0,
+                      tags
+                      TEXT
+                      DEFAULT
+                      ''
+                  )
+                  ''')
+        c.execute('''
+                  CREATE TABLE IF NOT EXISTS lexicon
+                  (
+                      profile
+                      TEXT,
+                      word
+                      TEXT,
+                      replacement
+                      TEXT,
+                      PRIMARY
+                      KEY
+                  (
+                      profile,
+                      word
+                  )
+                      )
+                  ''')
+        conn.commit()
+
+
+init_db()
 
 
 @st.cache_data
 def load_lexicons_from_db():
-    c = db_conn.cursor()
-    c.execute("SELECT profile, word, replacement FROM lexicon")
-    rows = c.fetchall()
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("SELECT profile, word, replacement FROM lexicon")
+        rows = c.fetchall()
 
     profiles = {
         "Технически": {"Vivacom": "Виваком", "AI": "Ей Ай", "Streamlit": "Стриймлит"},
@@ -70,21 +99,23 @@ def load_lexicons_from_db():
 
 
 def save_word_to_db(profile, word, replacement):
-    c = db_conn.cursor()
-    c.execute("INSERT OR REPLACE INTO lexicon (profile, word, replacement) VALUES (?, ?, ?)",
-              (profile, word, replacement))
-    db_conn.commit()
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("INSERT OR REPLACE INTO lexicon (profile, word, replacement) VALUES (?, ?, ?)",
+                  (profile, word, replacement))
+        conn.commit()
     st.cache_data.clear()
 
 
 def delete_word_from_db(profile, word):
-    c = db_conn.cursor()
-    c.execute("DELETE FROM lexicon WHERE profile = ? AND word = ?", (profile, word))
-    db_conn.commit()
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("DELETE FROM lexicon WHERE profile = ? AND word = ?", (profile, word))
+        conn.commit()
     st.cache_data.clear()
 
 
-# --- 2. НАСТРОЙКА НА СТРАНИЦАТА И ДИЗАЙН ---
+# --- 2. НАСТРОЙКА НА СТРАНИЦАТА И НЕОНОВО-ЧЕРВЕН ДИЗАЙН ---
 st.set_page_config(
     page_title="Text to Speech | Pro AI Studio Ultimate",
     page_icon="🎙️",
@@ -92,72 +123,73 @@ st.set_page_config(
 )
 
 st.markdown("""
-    <style>
-    .main {
-        background: linear-gradient(135deg, #070913 0%, #0b0f19 100%);
-        color: #f8fafc;
-    }
-    .stButton>button {
-        width: 100%;
-        border-radius: 14px;
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        color: white;
-        font-weight: 600;
-        border: none;
-        padding: 0.75rem 1rem;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
-    }
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
-    }
-    .stDownloadButton>button {
-        width: 100%;
-        border-radius: 14px;
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        color: white;
-        font-weight: 600;
-        border: none;
-        padding: 0.75rem 1rem;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
-    }
-    .stDownloadButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
-    }
-    .stTextArea textarea {
-        border-radius: 14px;
-        background-color: #111827;
-        color: #f8fafc;
-        border: 1px solid #374151;
-        box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
-    }
-    .stTextArea textarea:focus {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-    }
-    [data-testid="stSidebar"] {
-        background-color: #030712;
-        border-right: 1px solid #1f2937;
-    }
-    .footer {
-        position: fixed;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        background-color: #030712;
-        color: #9ca3af;
-        text-align: center;
-        padding: 10px;
-        font-size: 12px;
-        border-top: 1px solid #1f2937;
-        z-index: 999;
-    }
-    </style>
+<style>
+.main {
+    background: linear-gradient(135deg, #050505 0%, #0a0a0a 100%);
+    color: #f8fafc;
+}
+.stButton>button {
+    width: 100%;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%);
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+}
+.stButton>button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.7);
+}
+.stDownloadButton>button {
+    width: 100%;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%);
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+}
+.stDownloadButton>button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.7);
+}
+.stTextArea textarea {
+    border-radius: 14px;
+    background-color: #0a0a0a;
+    color: #f8fafc;
+    border: 1px solid #262626;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+}
+.stTextArea textarea:focus {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.4);
+}
+[data-testid="stSidebar"] {
+    background-color: #020202;
+    border-right: 1px solid #171717;
+}
+.footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: #020202;
+    color: #a3a3a3;
+    text-align: center;
+    padding: 10px;
+    font-size: 12px;
+    border-top: 1px solid #171717;
+    z-index: 999;
+}
+</style>
 """, unsafe_allow_html=True)
 
+# Инициализация на Session State
 if "lexicon_profiles" not in st.session_state:
     st.session_state.lexicon_profiles = load_lexicons_from_db()
 
@@ -167,12 +199,18 @@ if "active_profile" not in st.session_state:
 if "translated_text_cache" not in st.session_state:
     st.session_state.translated_text_cache = ""
 
+if "last_generated_audio" not in st.session_state:
+    st.session_state.last_generated_audio = None
+
+if "last_paragraphs" not in st.session_state:
+    st.session_state.last_paragraphs = []
+
 # Заглавие
 st.markdown(
-    "<h1 style='text-align: center; background: linear-gradient(90deg, #60a5fa, #3b82f6, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800;'>🎙️ Text to Speech AI Studio Ultimate Pro</h1>",
+    "<h1 style='text-align: center; background: linear-gradient(90deg, #f87171, #ef4444, #b91c1c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800;'>🎙️ Text to Speech AI Studio Ultimate Pro</h1>",
     unsafe_allow_html=True)
 st.markdown(
-    "<p style='text-align: center; color: #94a3b8; margin-top: -10px;'>Професионална студийна система за генерация на реч, подкасти, дублаж и аудиокниги</p>",
+    "<p style='text-align: center; color: #a3a3a3; margin-top: -10px;'>Професионална студийна система за генерация на реч, подкасти, дублаж и аудиокниги</p>",
     unsafe_allow_html=True)
 st.markdown("---")
 
@@ -210,6 +248,7 @@ with st.sidebar:
     }
 
     lang_choice = st.selectbox("🌍 Основен език:", ["Български (BG)", "Английски (EN)", "Немски (DE)"])
+    current_lang_code = "bg" if "Български" in lang_choice else ("en" if "Английски" in lang_choice else "de")
 
     if "Edge" in tts_engine:
         if "Български" in lang_choice:
@@ -222,7 +261,7 @@ with st.sidebar:
             voice_choice = st.radio("🎙️ Глас (DE):", ["👨 Killian (DE)", "👩 Katja (DE)"])
             selected_voice = "de-DE-KillianNeural" if "Killian" in voice_choice else "de-DE-KatjaNeural"
     else:
-        selected_voice = "bg" if "Български" in lang_choice else ("en" if "Английски" in lang_choice else "de")
+        selected_voice = current_lang_code
 
     st.markdown("---")
     st.markdown("#### 🎚️ Аудио Настройки")
@@ -270,55 +309,7 @@ volume_str = f"{volume:+d}%" if volume != 100 else "+0%"
 text_to_process = ""
 
 
-# --- 4. ПОМОЩНИ ФУНКЦИИ ---
-def extract_text_from_file(uploaded_file):
-    ext = uploaded_file.name.split(".")[-1].lower()
-    text = ""
-    if ext == "txt":
-        text = uploaded_file.getvalue().decode("utf-8")
-    elif ext == "pdf":
-        reader = PyPDF2.PdfReader(uploaded_file)
-        for page in reader.pages:
-            pt = page.extract_text()
-            if pt:
-                text += pt + "\n"
-    elif ext in ["doc", "docx"]:
-        doc = Document(uploaded_file)
-        for p in doc.paragraphs:
-            text += p.text + "\n"
-    return text
-
-
-def translate_long_text(text, src_code, tgt_code):
-    try:
-        from deep_translator import GoogleTranslator
-        translator = GoogleTranslator(source=src_code, target=tgt_code)
-        paragraphs = text.split("\n")
-        translated_parts = []
-        current_chunk = ""
-
-        for p in paragraphs:
-            if len(current_chunk) + len(p) + 1 < 4500:
-                current_chunk += p + "\n"
-            else:
-                if current_chunk.strip():
-                    translated_parts.append(translator.translate(current_chunk.strip()))
-                if len(p) >= 4500:
-                    for i in range(0, len(p), 4500):
-                        translated_parts.append(translator.translate(p[i:i + 4500]))
-                    current_chunk = ""
-                else:
-                    current_chunk = p + "\n"
-
-        if current_chunk.strip():
-            translated_parts.append(translator.translate(current_chunk.strip()))
-
-        return "\n\n".join(translated_parts)
-    except Exception as e:
-        st.error(f"Грешка при превод: {e}")
-        return text
-
-
+# --- 4. ПОМОЩНИ ФУНКЦИИ И ДИНАМИЧЕН ПРОГРЕС БАР ---
 def format_smart_time(total_seconds):
     total_seconds = int(round(total_seconds))
     if total_seconds < 1:
@@ -336,43 +327,149 @@ def format_smart_time(total_seconds):
     return " ".join(parts)
 
 
-def convert_numbers_to_words(text):
+class DynamicProgressTracker:
+    def __init__(self, total_steps, title="Обработка..."):
+        self.total_steps = max(1, total_steps)
+        self.title = title
+        self.start_time = time.time()
+        self.placeholder = st.empty()
+        self.update(0, "Инициализиране...")
+
+    def update(self, current_step, status_text=""):
+        elapsed = time.time() - self.start_time
+        pct = min(100.0, (current_step / self.total_steps) * 100)
+
+        if current_step > 0:
+            avg_time_per_step = elapsed / current_step
+            remaining_steps = self.total_steps - current_step
+            eta_seconds = remaining_steps * avg_time_per_step
+            eta_str = format_smart_time(eta_seconds) if remaining_steps > 0 else "0 сек."
+        else:
+            eta_str = "Изчисляване..."
+
+        elapsed_str = format_smart_time(elapsed)
+
+        html_code = (
+            f'<style>@keyframes redGlow {{ 0% {{ background-position: 100% 0%; }} 100% {{ background-position: -100% 0%; }} }}</style>'
+            f'<div style="background: #0d0d0d; border: 1px solid #262626; border-radius: 16px; padding: 18px; margin: 12px 0; box-shadow: 0 4px 20px rgba(239, 68, 68, 0.15); font-family: sans-serif;">'
+            f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">'
+            f'<span style="color: #f8fafc; font-weight: 600; font-size: 15px;">{html.escape(self.title)}</span>'
+            f'<span style="color: #ef4444; font-weight: 700; font-size: 15px;">{pct:.1f}%</span>'
+            f'</div>'
+            f'<div style="width: 100%; background-color: #171717; border-radius: 10px; height: 14px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);">'
+            f'<div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #ef4444, #dc2626, #b91c1c); background-size: 200% 100%; animation: redGlow 2s linear infinite; transition: width 0.3s ease; border-radius: 10px; box-shadow: 0 0 10px rgba(239, 68, 68, 0.7);"></div>'
+            f'</div>'
+            f'<div style="display: flex; justify-content: space-between; font-size: 12px; color: #a3a3a3; margin-top: 10px;">'
+            f'<span>📌 {html.escape(status_text)} ({current_step}/{self.total_steps})</span>'
+            f'<span>⏱️ Изминало: <b>{elapsed_str}</b> | ⏳ Оставащо: <b style="color: #f87171;">~{eta_str}</b></span>'
+            f'</div>'
+            f'</div>'
+        )
+        self.placeholder.markdown(html_code, unsafe_allow_html=True)
+
+    def clear(self):
+        self.placeholder.empty()
+
+
+def extract_text_from_file(uploaded_file):
+    if uploaded_file.size > 15 * 1024 * 1024:
+        st.error("⚠️ Файлът е твърде голям! Максималният размер е 15 MB.")
+        return ""
+    ext = uploaded_file.name.split(".")[-1].lower()
+    text = ""
+    try:
+        if ext == "txt":
+            text = uploaded_file.getvalue().decode("utf-8")
+        elif ext == "pdf":
+            reader = PyPDF2.PdfReader(uploaded_file)
+            for page in reader.pages:
+                pt = page.extract_text()
+                if pt:
+                    text += pt + "\n"
+        elif ext in ["doc", "docx"]:
+            doc = Document(uploaded_file)
+            for p in doc.paragraphs:
+                text += p.text + "\n"
+    except Exception as e:
+        st.error(f"❌ Грешка при четене на файла: {e}")
+    return text
+
+
+def translate_long_text(text, src_code, tgt_code):
+    try:
+        from deep_translator import GoogleTranslator
+        translator = GoogleTranslator(source=src_code, target=tgt_code)
+        paragraphs = text.split("\n")
+        chunks = []
+        current_chunk = ""
+
+        for p in paragraphs:
+            if len(current_chunk) + len(p) + 1 < 4500:
+                current_chunk += p + "\n"
+            else:
+                if current_chunk.strip():
+                    chunks.append(current_chunk.strip())
+                if len(p) >= 4500:
+                    for i in range(0, len(p), 4500):
+                        chunks.append(p[i:i + 4500])
+                    current_chunk = ""
+                else:
+                    current_chunk = p + "\n"
+
+        if current_chunk.strip():
+            chunks.append(current_chunk.strip())
+
+        if not chunks:
+            return text
+
+        tracker = DynamicProgressTracker(len(chunks), title="🌐 Превод на текст")
+        translated_parts = []
+        for idx, ch in enumerate(chunks, 1):
+            translated_parts.append(translator.translate(ch))
+            tracker.update(idx, status_text="Превеждане на сегмент")
+        tracker.clear()
+
+        return "\n\n".join(translated_parts)
+    except ImportError:
+        st.error("❌ Моля, инсталирайте библиотеката deep-translator: `pip install deep-translator`")
+        return text
+    except Exception as e:
+        st.error(f"❌ Грешка при превод: {e}")
+        return text
+
+
+def convert_numbers_to_words(text, lang_code='bg'):
+    decimal_joiner = {"bg": "цяло и", "en": "point", "de": "Komma"}.get(lang_code, "цяло и")
+
     def replace_match(match):
         num_str = match.group(0)
         try:
             if '.' in num_str or ',' in num_str:
                 parts = num_str.replace(',', '.').split('.')
-                whole = num2words(int(parts[0]), lang='bg')
-                decimal = num2words(int(parts[1]), lang='bg')
-                return f"{whole} цяло и {decimal}"
+                whole = num2words(int(parts[0]), lang=lang_code)
+                decimal = num2words(int(parts[1]), lang=lang_code)
+                return f"{whole} {decimal_joiner} {decimal}"
             else:
-                return num2words(int(num_str), lang='bg')
+                return num2words(int(num_str), lang=lang_code)
         except Exception:
             return num_str
 
     return re.sub(r'\b\d+(?:[.,]\d+)?\b', replace_match, text)
 
 
-def clean_and_optimize_speech(text):
+def clean_and_optimize_speech(text, lang_code='bg'):
     text = re.sub(r'<[^>]+>', '', text)
-    text = convert_numbers_to_words(text)
-
-    # --- ИЗПРАВЕНО ФОНЕТИЧНО ЗАМЕСТВАНЕ БЕЗ КРАЙНО "Ъ" ---
-    # Добавяме тирета и специално подбрани съчетания, за да се отсече меката съгласна
-    text = re.sub(r'\b[bб]sms\b', 'би-ес-ем-ес.', text, flags=re.IGNORECASE)
-    text = re.sub(r'\bsms\b', 'ес-ем-ес.', text, flags=re.IGNORECASE)
-
-    # Зареждане на потребителския речник от базата данни
+    text = convert_numbers_to_words(text, lang_code=lang_code)
     active_lexicon = st.session_state.lexicon_profiles[st.session_state.active_profile]
     for eng, bg in active_lexicon.items():
         text = text.replace(eng, bg)
-
     text = text.replace('/', ' ')
     text = re.sub(r'[\\|#_~^`]', ' ', text)
-    text = re.sub(r'\bнай\s*-\s*', 'най', text, flags=re.IGNORECASE)
-    text = re.sub(r'\bпо\s*-\s*', 'по', text, flags=re.IGNORECASE)
-    text = re.sub(r'\bѝ\b', 'и́', text)
-    text = re.sub(r'\bЍ\b', 'И́', text)
+    if lang_code == 'bg':
+        text = re.sub(r'\bнай\s*-\s*', 'най', text, flags=re.IGNORECASE)
+        text = re.sub(r'\bпо\s*-\s*', 'по', text, flags=re.IGNORECASE)
+        text = re.sub(r'\bѝ\b', 'и́', text)
+        text = re.sub(r'\bЍ\b', 'И́', text)
     return re.sub(r'[ \t]+', ' ', text).strip()
 
 
@@ -408,8 +505,16 @@ def run_async_safe(coro):
             loop.close()
 
 
-async def generate_audio_bytes_async(text, voice, rate_s, pitch_s, volume_s, engine_choice):
-    clean_base_text = clean_and_optimize_speech(text)
+def _gtts_sync_generate(clean_text, lang):
+    tts = gTTS(text=clean_text, lang=lang, slow=False)
+    fp = io.BytesIO()
+    tts.write_to_fp(fp)
+    fp.seek(0)
+    return fp.read()
+
+
+async def generate_audio_bytes_async(text, voice, rate_s, pitch_s, volume_s, engine_choice, lang_code='bg'):
+    clean_base_text = clean_and_optimize_speech(text, lang_code=lang_code)
     if "Edge" in engine_choice:
         communicate = edge_tts.Communicate(clean_base_text, voice, rate=rate_s, pitch=pitch_s, volume=volume_s)
         audio_buffer = io.BytesIO()
@@ -419,15 +524,42 @@ async def generate_audio_bytes_async(text, voice, rate_s, pitch_s, volume_s, eng
         audio_buffer.seek(0)
         return audio_buffer.read()
     else:
-        tts = gTTS(text=clean_base_text, lang=voice, slow=False)
-        fp = io.BytesIO()
-        tts.write_to_fp(fp)
-        fp.seek(0)
-        return fp.read()
+        return await asyncio.to_thread(_gtts_sync_generate, clean_base_text, voice)
 
 
-def generate_audio_bytes(text, voice, rate_s, pitch_s, volume_s, engine_choice):
-    return run_async_safe(generate_audio_bytes_async(text, voice, rate_s, pitch_s, volume_s, engine_choice))
+def generate_audio_bytes(text, voice, rate_s, pitch_s, volume_s, engine_choice, lang_code='bg'):
+    return run_async_safe(
+        generate_audio_bytes_async(text, voice, rate_s, pitch_s, volume_s, engine_choice, lang_code=lang_code)
+    )
+
+
+async def generate_audio_with_progress_async(text, voice, rate_s, pitch_s, volume_s, engine_choice, lang_code='bg'):
+    clean_base_text = clean_and_optimize_speech(text, lang_code=lang_code)
+    if "Edge" not in engine_choice:
+        tracker = DynamicProgressTracker(1, title="🎙️ Синтезиране на реч (gTTS)")
+        tracker.update(0, status_text="Изпращане към Google TTS...")
+        res = await asyncio.to_thread(_gtts_sync_generate, clean_base_text, voice)
+        tracker.update(1, status_text="Завършено")
+        tracker.clear()
+        return res
+
+    chunks = [c.strip() for c in re.split(r'(?<=[.!?])\s+', clean_base_text) if c.strip()]
+    if not chunks:
+        chunks = [clean_base_text]
+
+    tracker = DynamicProgressTracker(len(chunks), title="🎙️ Синтезиране на реч")
+    audio_buffer = io.BytesIO()
+
+    for idx, chunk_text in enumerate(chunks, 1):
+        communicate = edge_tts.Communicate(chunk_text, voice, rate=rate_s, pitch=pitch_s, volume=volume_s)
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                audio_buffer.write(chunk["data"])
+        tracker.update(idx, status_text="Обработка на сегмент")
+
+    tracker.clear()
+    audio_buffer.seek(0)
+    return audio_buffer.read()
 
 
 def play_rich_notification(msg="Готово!"):
@@ -456,44 +588,59 @@ def render_3d_audio_player(audio_bytes, paragraphs=None, should_autoplay=True):
     b64_audio = base64.b64encode(audio_bytes).decode()
     options_html = ""
     if paragraphs:
-        options_html = "<select id='paraSelect' style='background:#111827; color:#f8fafc; border:1px solid #374151; border-radius:10px; padding:10px; margin-bottom:14px; width:100%; font-size:14px; outline:none;'>"
+        options_html = "<select id='paraSelect' style='background:#0a0a0a; color:#f8fafc; border:1px solid #262626; border-radius:10px; padding:10px; margin-bottom:14px; width:100%; font-size:14px; outline:none;'>"
         options_html += "<option value='0'>📑 Бърз скок по абзаци...</option>"
         for idx, p in enumerate(paragraphs):
             snippet = (p[:45] + '...') if len(p) > 45 else p
-            options_html += f"<option value='{idx}'>Абзац {idx + 1}: {snippet}</option>"
+            safe_snippet = html.escape(snippet)
+            options_html += f"<option value='{idx}'>Абзац {idx + 1}: {safe_snippet}</option>"
         options_html += "</select>"
 
     player_html = f"""
-    <div style="background: linear-gradient(145deg, #111827, #030712); padding: 24px; border-radius: 20px; border: 1px solid #374151; box-shadow: 0 10px 25px rgba(0,0,0,0.5); font-family: sans-serif; color: #f8fafc;">
+    <div style="background: linear-gradient(145deg, #0d0d0d, #020202); padding: 24px; border-radius: 20px; border: 1px solid #262626; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.15); font-family: sans-serif; color: #f8fafc;">
         {options_html}
         <audio id="customAudio" style="display:none;"><source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3"></audio>
+
+        <!-- Прогрес бар и време -->
         <div style="margin-bottom: 12px;">
-            <input type="range" id="progressBar" value="0" min="0" max="100" step="0.1" style="width: 100%; accent-color: #3b82f6; cursor: pointer; height: 6px; border-radius: 3px;">
-            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #9ca3af; margin-top: 6px;">
+            <input type="range" id="progressBar" value="0" min="0" max="100" step="0.1" style="width: 100%; accent-color: #ef4444; cursor: pointer; height: 6px; border-radius: 3px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #a3a3a3; margin-top: 6px;">
                 <span id="currentTime">0:00</span>
                 <span id="durationTime">0:00</span>
             </div>
         </div>
-        <div style="display: flex; gap: 12px; align-items: center; justify-content: center;">
-            <button id="skipBackward" class="btn3d">⏪ -10с</button>
-            <button id="playPauseBtn" class="btn3d" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); padding: 10px 24px;">▶ Пусни</button>
-            <button id="skipForward" class="btn3d">10с ⏩</button>
+
+        <!-- Контролни бутони, бутон за мютване и плъзгач за сила на звука -->
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; gap: 8px; align-items: center; flex: 1; justify-content: center;">
+                <button id="skipBackward" class="btn3d">⏪ -10с</button>
+                <button id="playPauseBtn" class="btn3d" style="background: linear-gradient(135deg, #ef4444, #991b1b); padding: 10px 20px;">▶ Пусни</button>
+                <button id="skipForward" class="btn3d">10с ⏩</button>
+            </div>
+
+            <!-- Секция за звук и мют -->
+            <div style="display: flex; align-items: center; gap: 8px; background: #171717; padding: 6px 12px; border-radius: 10px; border: 1px solid #262626;">
+                <button id="muteBtn" style="background: transparent; border: none; cursor: pointer; font-size: 16px; padding: 0;" title="Заглуши / Включи звук">🔊</button>
+                <input type="range" id="volumeBar" value="100" min="0" max="100" step="1" style="width: 75px; accent-color: #ef4444; cursor: pointer; height: 4px;">
+                <span id="volumeText" style="font-size: 11px; color: #a3a3a3; width: 30px; text-align: right;">100%</span>
+            </div>
         </div>
     </div>
     <style>
         .btn3d {{
-            background: linear-gradient(145deg, #1f2937, #111827);
+            background: linear-gradient(145deg, #171717, #0a0a0a);
             color: #f8fafc;
-            border: 1px solid #4b5563;
+            border: 1px solid #383838;
             padding: 8px 16px;
             border-radius: 10px;
             font-weight: 600;
             cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
             transition: all 0.2s ease;
         }}
         .btn3d:hover {{
-            background: linear-gradient(145deg, #374151, #1f2937);
+            background: linear-gradient(145deg, #262626, #171717);
+            border-color: #ef4444;
             transform: translateY(-1px);
         }}
     </style>
@@ -506,6 +653,11 @@ def render_3d_audio_player(audio_bytes, paragraphs=None, should_autoplay=True):
         const skipBack = document.getElementById('skipBackward');
         const skipFwd = document.getElementById('skipForward');
         const paraSelect = document.getElementById('paraSelect');
+        const volumeBar = document.getElementById('volumeBar');
+        const volumeText = document.getElementById('volumeText');
+        const muteBtn = document.getElementById('muteBtn');
+
+        let lastVolume = 100;
 
         function formatTime(sec) {{
             const m = Math.floor(sec / 60);
@@ -515,6 +667,7 @@ def render_3d_audio_player(audio_bytes, paragraphs=None, should_autoplay=True):
 
         audio.addEventListener('loadedmetadata', () => {{
             durationEl.innerText = formatTime(audio.duration);
+            audio.volume = volumeBar.value / 100;
             if ({str(should_autoplay).lower()}) {{
                 audio.play().then(() => {{ playBtn.innerText = '⏸ Пауза'; }}).catch(e => console.log(e));
             }}
@@ -532,6 +685,33 @@ def render_3d_audio_player(audio_bytes, paragraphs=None, should_autoplay=True):
 
         progressBar.addEventListener('input', () => {{
             if (audio.duration) audio.currentTime = (progressBar.value / 100) * audio.duration;
+        }});
+
+        volumeBar.addEventListener('input', () => {{
+            audio.volume = volumeBar.value / 100;
+            volumeText.innerText = volumeBar.value + '%';
+            if (audio.volume > 0) {{
+                muteBtn.innerText = '🔊';
+                lastVolume = volumeBar.value;
+            }} else {{
+                muteBtn.innerText = '🔇';
+            }}
+        }});
+
+        muteBtn.addEventListener('click', () => {{
+            if (audio.volume > 0) {{
+                lastVolume = volumeBar.value;
+                audio.volume = 0;
+                volumeBar.value = 0;
+                volumeText.innerText = '0%';
+                muteBtn.innerText = '🔇';
+            }} else {{
+                const restoreVal = lastVolume > 0 ? lastVolume : 80;
+                audio.volume = restoreVal / 100;
+                volumeBar.value = restoreVal;
+                volumeText.innerText = restoreVal + '%';
+                muteBtn.innerText = '🔊';
+            }}
         }});
 
         skipBack.addEventListener('click', () => {{ audio.currentTime = Math.max(0, audio.currentTime - 10); }});
@@ -607,79 +787,142 @@ if app_section == "Текст към аудио":
         if not text_to_process.strip():
             st.error("⚠️ Моля, въведете текст за обработка.")
         else:
-            with st.spinner("⏳ Генерация на аудио..."):
-                try:
-                    audio_bytes = generate_audio_bytes(text_to_process, selected_voice, rate_str, pitch_str, volume_str,
-                                                       tts_engine)
-                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            try:
+                audio_bytes = run_async_safe(
+                    generate_audio_with_progress_async(
+                        text_to_process, selected_voice, rate_str, pitch_str, volume_str, tts_engine,
+                        lang_code=current_lang_code
+                    )
+                )
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                    c = db_conn.cursor()
+                with get_db_connection() as conn:
+                    c = conn.cursor()
                     c.execute("INSERT INTO history (text, voice, audio, timestamp) VALUES (?, ?, ?, ?)",
                               (text_to_process[:50], selected_voice, sqlite3.Binary(audio_bytes), timestamp))
-                    db_conn.commit()
+                    conn.commit()
 
-                    play_rich_notification("Аудио записът е готов!")
-                    st.markdown("### 🎧 Резултат:")
-                    paragraphs = [p.strip() for p in text_to_process.split("\n\n") if p.strip()]
-                    render_3d_audio_player(audio_bytes, paragraphs=paragraphs, should_autoplay=auto_play)
+                st.session_state.last_generated_audio = audio_bytes
+                st.session_state.last_paragraphs = [p.strip() for p in text_to_process.split("\n\n") if p.strip()]
+                play_rich_notification("Аудио записът е готов!")
+            except Exception as e:
+                st.error(f"❌ Грешка: {e}")
 
-                    st.markdown("#### 💾 Експорт на файл:")
-                    export_format = st.selectbox("Изберете аудио формат:", ["mp3", "wav", "ogg", "flac"])
+    if st.session_state.last_generated_audio is not None:
+        st.markdown("### 🎧 Резултат:")
+        render_3d_audio_player(
+            st.session_state.last_generated_audio,
+            paragraphs=st.session_state.last_paragraphs,
+            should_autoplay=auto_play if generate_btn else False
+        )
 
-                    if export_format == "mp3":
-                        export_data = audio_bytes
-                        mime_type = "audio/mp3"
-                        file_name = "speech.mp3"
-                    else:
-                        seg = AudioSegment.from_file(io.BytesIO(audio_bytes), format="mp3")
-                        buf = io.BytesIO()
-                        seg.export(buf, format=export_format)
-                        export_data = buf.getvalue()
-                        mime_type = f"audio/{export_format}"
-                        file_name = f"speech.{export_format}"
+        st.markdown("#### 💾 Експорт на файл:")
+        export_format = st.selectbox("Изберете аудио формат:", ["mp3", "wav", "ogg", "flac"])
 
-                    st.download_button(f"📥 Свали файл ({export_format.upper()})", data=export_data, file_name=file_name,
-                                       mime=mime_type, use_container_width=True)
-                except Exception as e:
-                    st.error(f"❌ Грешка: {e}")
+        if export_format == "mp3":
+            export_data = st.session_state.last_generated_audio
+            mime_type = "audio/mp3"
+            file_name = "speech.mp3"
+        else:
+            seg = AudioSegment.from_file(io.BytesIO(st.session_state.last_generated_audio), format="mp3")
+            buf = io.BytesIO()
+            seg.export(buf, format=export_format)
+            export_data = buf.getvalue()
+            mime_type = f"audio/{export_format}"
+            file_name = f"speech.{export_format}"
+
+        st.download_button(f"📥 Свали файл ({export_format.upper()})", data=export_data, file_name=file_name,
+                           mime=mime_type, use_container_width=True)
 
 elif app_section == "Пакетен експорт":
-    st.markdown("### 📦 Режим: Пакетен експорт на книги и статии")
-    batch_text = st.text_area("Поставете дълъг текст тук...", height=260, label_visibility="collapsed")
+    st.markdown("### 📦 Режим: Пакетен експорт и разделяне на книги/учебници")
+    st.markdown(
+        "Поставете текст от книга или учебник. По подразбиране целият текст се третира като един документ, но можете да изберете разделяне по глави само при нужда.")
+
+    batch_input_file = st.file_uploader("📂 Качете цяла книга/учебник (.txt, .pdf, .docx)", type=["txt", "pdf", "docx"])
+
+    file_extracted_text = ""
+    if batch_input_file is not None:
+        file_extracted_text = extract_text_from_file(batch_input_file)
+
+    batch_text = st.text_area("Или поставете текста на книгата тук...", value=file_extracted_text, height=240)
 
     if batch_text.strip():
-        text_to_process = batch_text
+        # Превключвател: Дали да се дели автоматично или целият текст да е един файл
+        split_mode = st.radio(
+            "Режим на обработка на текста:",
+            ["📄 Третирай целия текст като един документ", "📑 Раздели го на глави / части (по заглавия)"]
+        )
 
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        batch_btn = st.button("📦 Създай ZIP архив с глави", use_container_width=True)
-
-    if batch_btn:
-        if not text_to_process.strip():
-            st.error("⚠️ Моля, въведете текст.")
+        if "Третирай целия текст" in split_mode:
+            chapters = [batch_text]
         else:
-            with st.spinner("📦 Разделяне на глави и архивиране..."):
-                try:
-                    chapters = re.split(r'\n(?=Глава|Част|\b[ІVXLCM]+\b)', text_to_process)
-                    if len(chapters) <= 1:
-                        chapters = [p.strip() for p in text_to_process.split("\n\n") if p.strip()]
-                    if not chapters:
-                        chapters = [text_to_process]
+            # Търсим само реални заглавия (напр. нов ред, последван от 'Глава X' или 'Част X')
+            raw_chapters = re.split(r'\n(?=(?:Глава|Част|Chapter|Раздел)\s+\d+)', batch_text, flags=re.IGNORECASE)
+            chapters = [c.strip() for c in raw_chapters if c.strip()]
+            if not chapters:
+                chapters = [batch_text]
 
-                    zip_buffer = io.BytesIO()
-                    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-                        for idx, chap in enumerate(chapters, 1):
-                            part_bytes = generate_audio_bytes(chap, selected_voice, rate_str, pitch_str, volume_str,
-                                                              tts_engine)
-                            zf.writestr(f"glava_{idx:02d}.mp3", part_bytes)
-                    zip_buffer.seek(0)
+        st.markdown(f"📖 **Общ брой документи/части за генерация: {len(chapters)}**")
 
-                    play_rich_notification("Архивът е готов!")
-                    st.success(f"✅ Успешно генерирани {len(chapters)} глави!")
-                    st.download_button("📥 Изтегли ZIP архив", data=zip_buffer, file_name="audiobook_batch.zip",
-                                       mime="application/zip", use_container_width=True)
-                except Exception as e:
-                    st.error(f"❌ Грешка: {e}")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            batch_btn = st.button("🚀 Генерирай пакета", use_container_width=True)
+
+        if batch_btn:
+            total_parts = len(chapters)
+            tracker = DynamicProgressTracker(total_parts, title="📦 Пакетна генерация")
+            semaphore = asyncio.Semaphore(4)
+
+
+            async def process_all_parts():
+                async def process_single(order_num, chap_text):
+                    async with semaphore:
+                        b = await generate_audio_bytes_async(
+                            chap_text, selected_voice, rate_str, pitch_str, volume_str, tts_engine,
+                            lang_code=current_lang_code
+                        )
+                        return order_num, b
+
+                tasks = [process_single(i, ch) for i, ch in enumerate(chapters, 1)]
+                results = []
+                completed = 0
+
+                for f in asyncio.as_completed(tasks):
+                    order_num, b = await f
+                    results.append((order_num, b))
+                    completed += 1
+                    tracker.update(completed, status_text=f"Генерация на част {order_num} от {total_parts}")
+                return results
+
+
+            try:
+                loop_results = run_async_safe(process_all_parts())
+                valid_results = [r for r in loop_results if r is not None]
+
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+                    for part_num, part_bytes in valid_results:
+                        zf.writestr(f"chast_{part_num:02d}.mp3", part_bytes)
+                zip_buffer.seek(0)
+
+                tracker.clear()
+                play_rich_notification("Пакетът е готов!")
+                st.success(f"✅ Успешно генерирани и архивирани {len(valid_results)} файла!")
+
+                st.download_button("📥 Изтегли всички части в ZIP архив", data=zip_buffer,
+                                   file_name="audiobook_export.zip",
+                                   mime="application/zip", use_container_width=True)
+
+                st.markdown("#### 📂 Индивидуално сваляне:")
+                for part_num, part_bytes in sorted(valid_results):
+                    st.download_button(f"📥 Свали Част {part_num} (.mp3)", data=part_bytes,
+                                       file_name=f"chast_{part_num:02d}.mp3", mime="audio/mp3",
+                                       key=f"dl_part_{part_num}")
+
+            except Exception as e:
+                tracker.clear()
+                st.error(f"❌ Грешка: {e}")
 
 elif app_section == "🌐 AI Преводач на текст":
     st.markdown("### 🌐 Режим: AI Преводач и Локализация")
@@ -695,10 +938,9 @@ elif app_section == "🌐 AI Преводач на текст":
         if not tr_text.strip():
             st.warning("⚠️ Моля, въведете текст.")
         else:
-            with st.spinner("⏳ Превеждане..."):
-                translated = translate_long_text(tr_text, LANG_CODES[source_lang], LANG_CODES[target_lang])
-                st.session_state.translated_text_cache = translated
-                st.success("✅ Преводът е готов!")
+            translated = translate_long_text(tr_text, LANG_CODES[source_lang], LANG_CODES[target_lang])
+            st.session_state.translated_text_cache = translated
+            st.success("✅ Преводът е готов!")
 
     if st.session_state.translated_text_cache:
         st.text_area("Резултат:", value=st.session_state.translated_text_cache, height=200)
@@ -719,7 +961,7 @@ elif app_section == "📝 SRT Субтитри":
                                use_container_width=True)
 
 elif app_section == "🎭 Аудио драма (Multi-Voice)":
-    st.markdown("### 🎭 Режим: Аудио драма с редуване на гласове")
+    st.markdown("### 🎭 Режим: Аудио драма с редуване на гласове (Асинхронен)")
     st.markdown("Пример: `[Борислав]: Здравей!` или `[Калина]: Здрасти!`")
     drama_input = st.text_area("Сценарий:", value="[Борислав]: Здравей, Калина!\n[Калина]: Здрасти, как си?",
                                height=220)
@@ -734,12 +976,14 @@ elif app_section == "🎭 Аудио драма (Multi-Voice)":
         if not drama_input.strip():
             st.warning("⚠️ Въведете сценарий.")
         else:
-            with st.spinner("⏳ Синтезиране на диалога..."):
-                try:
-                    lines = drama_input.split("\n")
-                    combined = AudioSegment.empty()
-                    for line in lines:
-                        if not line.strip(): continue
+            lines = [l.strip() for l in drama_input.split("\n") if l.strip()]
+            tracker = DynamicProgressTracker(len(lines), title="🎭 Синтезиране на аудио драма")
+            semaphore = asyncio.Semaphore(4)
+
+
+            async def process_drama():
+                async def process_line(idx, line):
+                    async with semaphore:
                         curr_v = v_a
                         spoken = line
                         if line.startswith("[Борислав]"):
@@ -749,21 +993,44 @@ elif app_section == "🎭 Аудио драма (Multi-Voice)":
                             curr_v = v_b
                             spoken = line.replace("[Калина]:", "").replace("[Калина]", "")
 
-                        chunk_bytes = generate_audio_bytes(spoken, curr_v, rate_str, pitch_str, volume_str, "Edge-TTS")
-                        seg = AudioSegment.from_file(io.BytesIO(chunk_bytes), format="mp3")
-                        combined += seg + AudioSegment.silent(duration=400)
+                        line_lang = "en" if "en-US" in curr_v else "bg"
+                        chunk_bytes = await generate_audio_bytes_async(
+                            spoken, curr_v, rate_str, pitch_str, volume_str, "Edge-TTS", lang_code=line_lang
+                        )
+                        return idx, chunk_bytes
 
-                    buf = io.BytesIO()
-                    combined.export(buf, format="mp3")
-                    res_bytes = buf.getvalue()
+                tasks = [process_line(i, l) for i, l in enumerate(lines)]
+                results = [None] * len(lines)
+                completed = 0
 
-                    play_rich_notification("Драмата е готова!")
-                    st.success("✅ Готово!")
-                    render_3d_audio_player(res_bytes, should_autoplay=auto_play)
-                    st.download_button("📥 Свали драмата (.mp3)", data=res_bytes, file_name="drama.mp3",
-                                       mime="audio/mp3", use_container_width=True)
-                except Exception as e:
-                    st.error(f"❌ Грешка: {e}")
+                for f in asyncio.as_completed(tasks):
+                    idx, chunk_bytes = await f
+                    results[idx] = chunk_bytes
+                    completed += 1
+                    tracker.update(completed, status_text=f"Реплика {completed} от {len(lines)}")
+                return results
+
+
+            try:
+                line_bytes_list = run_async_safe(process_drama())
+                combined = AudioSegment.empty()
+                for cb in line_bytes_list:
+                    seg = AudioSegment.from_file(io.BytesIO(cb), format="mp3")
+                    combined += seg + AudioSegment.silent(duration=400)
+
+                buf = io.BytesIO()
+                combined.export(buf, format="mp3")
+                res_bytes = buf.getvalue()
+
+                tracker.clear()
+                play_rich_notification("Драмата е готова!")
+                st.success("✅ Готово!")
+                render_3d_audio_player(res_bytes, should_autoplay=auto_play)
+                st.download_button("📥 Свали драмата (.mp3)", data=res_bytes, file_name="drama.mp3", mime="audio/mp3",
+                                   use_container_width=True)
+            except Exception as e:
+                tracker.clear()
+                st.error(f"❌ Грешка: {e}")
 
 elif app_section == "🎵 Аудио миксер и фонове":
     st.markdown("### 🎵 Режим: Аудио миксер (Реч + Фонова музика)")
@@ -775,73 +1042,79 @@ elif app_section == "🎵 Аудио миксер и фонове":
         if not mix_text.strip() or not bg_file:
             st.warning("⚠️ Моля, въведете текст и качете фонова музика.")
         else:
-            with st.spinner("⏳ Миксиране..."):
-                try:
-                    speech_b = generate_audio_bytes(mix_text, selected_voice, rate_str, pitch_str, volume_str,
-                                                    tts_engine)
-                    speech_seg = AudioSegment.from_file(io.BytesIO(speech_b), format="mp3")
-                    music_seg = AudioSegment.from_file(bg_file)
+            tracker = DynamicProgressTracker(3, title="🎵 Миксиране на аудио")
+            try:
+                tracker.update(0, status_text="Синтезиране на реч...")
+                speech_b = generate_audio_bytes(
+                    mix_text, selected_voice, rate_str, pitch_str, volume_str, tts_engine, lang_code=current_lang_code
+                )
+                tracker.update(1, status_text="Обработка на фоновата музика...")
+                speech_seg = AudioSegment.from_file(io.BytesIO(speech_b), format="mp3")
+                music_seg = AudioSegment.from_file(bg_file)
 
-                    if len(music_seg) < len(speech_seg):
-                        music_seg = music_seg * math.ceil(len(speech_seg) / len(music_seg))
-                    music_seg = music_seg[:len(speech_seg)] + bg_vol
+                if len(music_seg) < len(speech_seg):
+                    music_seg = music_seg * math.ceil(len(speech_seg) / len(music_seg))
+                music_seg = music_seg[:len(speech_seg)] + bg_vol
 
-                    mixed = speech_seg.overlay(music_seg)
-                    buf = io.BytesIO()
-                    mixed.export(buf, format="mp3")
-                    mixed_bytes = buf.getvalue()
+                tracker.update(2, status_text="Смесване и експорт...")
+                mixed = speech_seg.overlay(music_seg)
+                buf = io.BytesIO()
+                mixed.export(buf, format="mp3")
+                mixed_bytes = buf.getvalue()
 
-                    play_rich_notification("Готово!")
-                    st.success("✅ Успешен микс!")
-                    render_3d_audio_player(mixed_bytes, should_autoplay=auto_play)
-                    st.download_button("📥 Свали микса (.mp3)", data=mixed_bytes, file_name="mixed.mp3",
-                                       mime="audio/mp3", use_container_width=True)
-                except Exception as e:
-                    st.error(f"❌ Грешка: {e}")
+                tracker.update(3, status_text="Готово!")
+                tracker.clear()
+                play_rich_notification("Готово!")
+                st.success("✅ Успешен микс!")
+                render_3d_audio_player(mixed_bytes, should_autoplay=auto_play)
+                st.download_button("📥 Свали микса (.mp3)", data=mixed_bytes, file_name="mixed.mp3",
+                                   mime="audio/mp3", use_container_width=True)
+            except Exception as e:
+                tracker.clear()
+                st.error(f"❌ Грешка: {e}")
 
 else:
     st.markdown("### 📚 Режим: Архив и библиотека")
-    c = db_conn.cursor()
-    search_q = st.text_input("🔍 Търсене в историята:")
-    if search_q:
-        c.execute("SELECT id, text, timestamp, is_favorite FROM history WHERE text LIKE ? ORDER BY id DESC",
-                  (f"%{search_q}%",))
-    else:
-        c.execute("SELECT id, text, timestamp, is_favorite FROM history ORDER BY id DESC")
-    rows = c.fetchall()
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        search_q = st.text_input("🔍 Търсене в историята:")
+        if search_q:
+            c.execute("SELECT id, text, timestamp, is_favorite FROM history WHERE text LIKE ? ORDER BY id DESC",
+                      (f"%{search_q}%",))
+        else:
+            c.execute("SELECT id, text, timestamp, is_favorite FROM history ORDER BY id DESC")
+        rows = c.fetchall()
 
-    if rows:
-        if st.button("🗑️ Изчисти цялата история"):
-            c.execute("DELETE FROM history")
-            db_conn.commit()
-            st.rerun()
+        if rows:
+            if st.button("🗑️ Изчисти цялата история"):
+                c.execute("DELETE FROM history")
+                conn.commit()
+                st.rerun()
 
-        for row in rows:
-            rec_id, rec_text, rec_time, is_fav = row
-            col_a, col_b, col_c = st.columns([4, 1, 1])
-            with col_a:
-                fav_icon = "⭐" if is_fav else "☆"
-                st.markdown(f"**#{rec_id}** ({rec_time}) {fav_icon}\n_{rec_text}_")
-            with col_b:
-                if st.button(f"📥 Зареди", key=f"lib_load_{rec_id}"):
-                    c.execute("SELECT audio FROM history WHERE id = ?", (rec_id,))
-                    audio_blob = c.fetchone()[0]
-                    render_3d_audio_player(audio_blob, should_autoplay=False)
-            with col_c:
-                fav_txt = "Премахни ⭐" if is_fav else "Маркирай ⭐"
-                if st.button(fav_txt, key=f"fav_{rec_id}"):
-                    new_fav = 0 if is_fav else 1
-                    c.execute("UPDATE history SET is_favorite = ? WHERE id = ?", (new_fav, rec_id))
-                    db_conn.commit()
-                    st.rerun()
-            st.markdown("---")
-    else:
-        st.info("Няма записи в архива.")
+            for row in rows:
+                rec_id, rec_text, rec_time, is_fav = row
+                col_a, col_b, col_c = st.columns([4, 1, 1])
+                with col_a:
+                    fav_icon = "⭐" if is_fav else "☆"
+                    st.markdown(f"**#{rec_id}** ({rec_time}) {fav_icon}\n_{rec_text}_")
+                with col_b:
+                    if st.button(f"📥 Зареди", key=f"lib_load_{rec_id}"):
+                        c.execute("SELECT audio FROM history WHERE id = ?", (rec_id,))
+                        audio_blob = c.fetchone()[0]
+                        render_3d_audio_player(audio_blob, should_autoplay=False)
+                with col_c:
+                    fav_txt = "Премахни ⭐" if is_fav else "Маркирай ⭐"
+                    if st.button(fav_txt, key=f"fav_{rec_id}"):
+                        new_fav = 0 if is_fav else 1
+                        c.execute("UPDATE history SET is_favorite = ? WHERE id = ?", (new_fav, rec_id))
+                        conn.commit()
+                        st.rerun()
+                st.markdown("---")
+        else:
+            st.info("Няма записи в архива.")
 
 # --- 6. ФУТЕР ---
-st.markdown("""
-    <div class="footer">
-        © 2026 Създадено от Никола Дафинкичов. Всички права запазени.<br>
-        © 2026 Created by Nikola Dafinkichov. All rights reserved.
-    </div>
-""", unsafe_allow_html=True)
+st.markdown(
+    '<div class="footer">© 2026 Създадено от Никола Дафинкичов. Всички права запазени.<br>© 2026 Created by Nikola Dafinkichov. All rights reserved.</div>',
+    unsafe_allow_html=True
+)
